@@ -215,8 +215,8 @@ export default function ConnectionsPanel() {
       </div>
       <p className="connections-intro">
         Find a friend by username, then send a request. Refresh to check for new
-        activity. These are real account connections, separate from the sample feed,
-        map, plans, and circles.
+        activity. These real friends can be selected for Home updates and Plans.
+        The map and journey tools remain demos.
       </p>
 
       <form

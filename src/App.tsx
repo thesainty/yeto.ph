@@ -30,6 +30,7 @@ import {
   X,
 } from "lucide-react";
 import { Avatar, AvatarStack, Logo, Modal } from "./components/ui";
+import PilotGuide from "./components/PilotGuide";
 import Home from "./screens/Home";
 import { useAccount } from "./account/AccountProvider";
 import { useConnections } from "./account/ConnectionsProvider";
@@ -121,6 +122,7 @@ export default function App() {
     | "notifications"
     | "profile"
     | "account"
+    | "pilot"
     | null
   >(null);
   const [toast, setToast] = useState("");
@@ -613,6 +615,7 @@ export default function App() {
                 <Logo compact />
                 <span>Your people. A little closer.</span>
                 <Heart size={12} fill="currentColor" />
+                <button className="pilot-guide-link" onClick={() => setModal("pilot")}>Pilot guide</button>
               </footer>
             </main>
 
@@ -1180,7 +1183,7 @@ export default function App() {
               <ShieldCheck size={19} />
               <p>
                 {account.session
-                  ? "Friend requests are real. Sample feed activity stays separate. No push alerts are enabled."
+                  ? "These are real friend requests. Feed updates and plan invitations appear in Home and Plans. No push alerts are enabled."
                   : "Just the good stuff. These are sample notifications; no push alerts are enabled."}
               </p>
             </div>
@@ -1188,6 +1191,9 @@ export default function App() {
         </Modal>
       )}
 
+      {modal === "pilot" && (
+        <PilotGuide onClose={() => setModal(null)} onAccount={() => setModal("account")} />
+      )}
       {modal === "account" && (
         <Modal
           title="Your TARA account"

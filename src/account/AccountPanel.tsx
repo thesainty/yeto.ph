@@ -475,8 +475,8 @@ export default function AccountPanel() {
         <div className="account-real-note">
           <ShieldCheck size={18} />
           <p>
-            Your profile and friendships are connected. The feed, map, and
-            journeys still use sample data. GPS sharing is not enabled.
+            Your profile, friendships, Home updates, and Plans use real data.
+            The map and journey tools remain demos. GPS sharing is not enabled.
           </p>
         </div>
         <button
@@ -643,7 +643,7 @@ export default function AccountPanel() {
       <div className="account-real-note">
         <ShieldCheck size={18} />
         <p>
-          Your real account is separate from the sample feed. GPS sharing is not
+          Sign in to use real friends, Home updates, and Plans. GPS sharing is not
           enabled.
         </p>
       </div>

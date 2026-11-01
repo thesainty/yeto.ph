@@ -62,6 +62,12 @@ This is a responsive web app, not a released iOS/Android app. Real accounts and 
 
 For reliable ongoing sharing on phones, use a native-capable iOS/Android client and validate permissions, background restrictions, accuracy, connectivity loss, and battery behavior on real devices.
 
+## Invited-user pilot
+
+The project owner has verified the deployed two-account flow: private and selected-friend posts, reactions/comments, plan invitations/RSVPs, and access revocation after removing or blocking a friend, including re-friending. These are user-reported hosted results; automated browser tests use intercepted responses.
+
+Start with the [pilot guide and invitation draft](docs/PILOT.md) for a suggested 5–10 people, and the [feedback template](docs/PILOT-FEEDBACK.md). Testers can open **Pilot guide** in the app footer for account setup, a short task list, and a copyable feedback template. Feedback goes privately to the person who invited them; the app does not send or collect it. Recruiting by invitation does not restrict public signup automatically. Keep the existing accounts, Supabase settings, and website address; no database changes are needed for the pilot guide.
+
 ## Browser checks
 
 The smoke suite uses Python Playwright and a local Chromium browser. In this cloud environment these are already installed. Elsewhere install the test requirements and provide Chromium:

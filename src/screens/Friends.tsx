@@ -48,8 +48,8 @@ export default function Friends(props: FriendsProps) {
           <span className="eyebrow">REAL CONNECTIONS</span>
           <h2>Your people, for real.</h2>
           <p>
-            Manage your friends and requests here. The feed, map, plans, and
-            circles remain sample content.
+            Manage your real friends and requests here. Home updates and Plans
+            use the people you explicitly select. The map and journey tools remain demos.
           </p>
           <ConnectionsPanel />
         </section>

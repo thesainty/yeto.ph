@@ -1,0 +1,68 @@
+.pilot-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  color: #504b49;
+  font-size: 13px;
+  line-height: 1.75;
+}
+.pilot-guide h3 {
+  color: #202a3e;
+  font-size: 17px;
+  margin: 0 0 8px;
+}
+.pilot-guide p {
+  margin: 0 0 12px;
+}
+.pilot-guide ol {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+.pilot-guide li + li {
+  margin-top: 8px;
+}
+.pilot-guide label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 7px;
+}
+.pilot-guide textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #e6decf;
+  border-radius: 12px;
+  background: #fffdf8;
+  color: #504b49;
+  font: inherit;
+  resize: vertical;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.pilot-boundary {
+  display: flex;
+  gap: 10px;
+  padding: 15px;
+  border-radius: 14px;
+  background: #eff3e8;
+}
+.pilot-boundary > svg {
+  flex: none;
+  margin-top: 3px;
+  color: #6a8154;
+}
+.pilot-boundary p {
+  margin: 0;
+}
+.main-footer {
+  flex-wrap: wrap;
+}
+.main-footer .pilot-guide-link {
+  background: none;
+  border: 0;
+  color: #75664d;
+  font: inherit;
+  font-size: 11px;
+  padding: 8px;
+  cursor: pointer;
+}
