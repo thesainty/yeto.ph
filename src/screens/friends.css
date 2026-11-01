@@ -633,3 +633,19 @@
     display: none;
   }
 }
+.friends-real-intro,
+.friends-account-loading {
+  padding: 24px;
+}
+.friends-real-intro > h2 {
+  margin: 10px 0;
+}
+.friends-real-intro > p {
+  font-size: 13px;
+  color: #8b7c69;
+  line-height: 1.7;
+}
+.friends-real .connections-panel {
+  margin-top: 20px;
+  padding-top: 20px;
+}

@@ -32,6 +32,7 @@ import {
 import { Avatar, AvatarStack, Logo, Modal } from "./components/ui";
 import Home from "./screens/Home";
 import { useAccount } from "./account/AccountProvider";
+import { useConnections } from "./account/ConnectionsProvider";
 import Friends from "./screens/Friends";
 import Plans from "./screens/Plans";
 import MapScreen, { MiniMap } from "./screens/Map";
@@ -94,6 +95,7 @@ function formatDuration(minutes: number | null) {
 
 export default function App() {
   const account = useAccount();
+  const connections = useConnections();
   const identity = useIdentity();
   const ownerId = account.session?.user.id ?? null;
   const activityOwner = account.loading ? "restoring" : (ownerId ?? "demo");
@@ -101,6 +103,11 @@ export default function App() {
     ownerId,
     account.loading,
   );
+  const pendingRequests = account.loading
+    ? 0
+    : account.session
+      ? (connections.error ? 0 : connections.data?.incoming.length ?? 0)
+      : state.requestStatus === "pending" ? 1 : 0;
   const [tab, setTab] = useState<Tab>(readTab);
   const [modal, setModal] = useState<
     | "share"
@@ -349,13 +356,20 @@ export default function App() {
               <button
                 key={id}
                 onClick={() => navigate(id)}
+                aria-label={
+                  id === "friends" && pendingRequests > 0
+                    ? `Friends (${pendingRequests} pending requests)`
+                    : undefined
+                }
                 className={tab === id ? "nav-active" : ""}
                 aria-current={tab === id ? "page" : undefined}
               >
                 <Icon size={21} strokeWidth={tab === id ? 2.4 : 1.8} />
                 <span>{label}</span>
-                {id === "friends" && state.requestStatus === "pending" ? (
-                  <i className="nav-badge">1</i>
+                {id === "friends" && pendingRequests > 0 ? (
+                  <i className="nav-badge" aria-hidden="true">
+                    {pendingRequests}
+                  </i>
                 ) : id === "plans" && joinedPlans.length ? (
                   <i className="nav-count">{joinedPlans.length}</i>
                 ) : tab === id ? (
@@ -425,7 +439,10 @@ export default function App() {
             </button>
             <div className="topbar-actions">
               <span className="demo-badge">
-                <span /> Interactive demo
+                <span />{" "}
+                {account.session
+                  ? tab === "friends" ? "Real connections" : "Sample content"
+                  : "Interactive demo"}
               </span>
               <button
                 className="icon-button notification-button"
@@ -433,7 +450,7 @@ export default function App() {
                 aria-label="Open notifications"
               >
                 <Bell size={21} />
-                {state.requestStatus === "pending" && <i />}
+                {pendingRequests > 0 && <i />}
               </button>
               <button
                 className="topbar-profile"
@@ -580,11 +597,15 @@ export default function App() {
             <aside className="right-rail" aria-label="Your circle at a glance">
               <section className="card circle-overview">
                 <div className="rail-heading">
-                  <h2>Your circle, nearby</h2>
+                  <h2>
+                    {account.session ? "Sample circle, nearby" : "Your circle, nearby"}
+                  </h2>
                   <span className="rail-live-label">Demo</span>
                 </div>
                 <p className="rail-description">
-                  A small world, filled with your people.
+                  {account.session
+                    ? "Fictional people and locations, separate from real friends."
+                    : "A small world, filled with your people."}
                 </p>
                 <MiniMap
                   friendIds={state.friendIds}
@@ -676,12 +697,21 @@ export default function App() {
           <button
             key={id}
             onClick={() => navigate(id)}
+            aria-label={
+              id === "friends" && pendingRequests > 0
+                ? `Friends (${pendingRequests} pending requests)`
+                : undefined
+            }
             aria-current={tab === id ? "page" : undefined}
             className={tab === id ? "nav-active" : ""}
           >
             <span>
               <Icon size={22} strokeWidth={tab === id ? 2.5 : 1.8} />
-              {id === "friends" && state.requestStatus === "pending" && <i />}
+              {id === "friends" && pendingRequests > 0 && (
+                <i className="nav-badge" aria-hidden="true">
+                  {pendingRequests}
+                </i>
+              )}
             </span>
             {label}
           </button>
@@ -1058,41 +1088,78 @@ export default function App() {
           onClose={() => setModal(null)}
         >
           <div className="notifications-list">
-            {state.requestStatus === "pending" && (
-              <button
-                onClick={() => {
-                  setModal(null);
-                  navigate("friends");
-                }}
-              >
-                <Avatar id="ana" size={45} />
-                <span>
-                  <strong>Ana wants to connect</strong>
-                  <small>A new friend, a little closer. · 2h ago</small>
-                </span>
-                <ChevronRight size={18} />
-              </button>
+            {account.session ? (
+              <>
+                <p className="form-helper">
+                  Real friend requests. Refresh Friends to check for new activity.
+                </p>
+                {connections.error ? (
+                  <p role="alert">{connections.error}</p>
+                ) : !connections.data ? (
+                  <p role="status">Loading your connections…</p>
+                ) : connections.data.incoming.length ? (
+                  connections.data.incoming.map((request) => (
+                    <button
+                      key={request.id}
+                      onClick={() => {
+                        setModal(null);
+                        navigate("friends");
+                      }}
+                    >
+                      <span className="notification-icon">
+                        <Users size={22} />
+                      </span>
+                      <span>
+                        <strong>{request.person.display_name || "A TARA member"} wants to connect</strong>
+                        <small>@{request.person.username} · View your requests in Friends</small>
+                      </span>
+                      <ChevronRight size={18} />
+                    </button>
+                  ))
+                ) : (
+                  <p className="form-helper">No incoming friend requests right now.</p>
+                )}
+              </>
+            ) : (
+              <>
+                {state.requestStatus === "pending" && (
+                  <button
+                    onClick={() => {
+                      setModal(null);
+                      navigate("friends");
+                    }}
+                  >
+                    <Avatar id="ana" size={45} />
+                    <span>
+                      <strong>Ana wants to connect</strong>
+                      <small>A new friend, a little closer. · 2h ago</small>
+                    </span>
+                    <ChevronRight size={18} />
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setModal(null);
+                    navigate("plans");
+                  }}
+                >
+                  <span className="notification-icon">
+                    <Coffee size={22} />
+                  </span>
+                  <span>
+                    <strong>Bea’s making coffee plans</strong>
+                    <small>Tomorrow at 3:00 PM. Are you in?</small>
+                  </span>
+                  <ChevronRight size={18} />
+                </button>
+              </>
             )}
-            <button
-              onClick={() => {
-                setModal(null);
-                navigate("plans");
-              }}
-            >
-              <span className="notification-icon">
-                <Coffee size={22} />
-              </span>
-              <span>
-                <strong>Bea’s making coffee plans</strong>
-                <small>Tomorrow at 3:00 PM. Are you in?</small>
-              </span>
-              <ChevronRight size={18} />
-            </button>
             <div className="notifications-note">
               <ShieldCheck size={19} />
               <p>
-                Just the good stuff. These are sample notifications; no push
-                alerts are enabled.
+                {account.session
+                  ? "Friend requests are real. Sample feed activity stays separate. No push alerts are enabled."
+                  : "Just the good stuff. These are sample notifications; no push alerts are enabled."}
               </p>
             </div>
           </div>

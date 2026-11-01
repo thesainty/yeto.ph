@@ -729,5 +729,239 @@ class AccountIntegrationTests(unittest.TestCase):
         second.close()
 
 
+    def main_connections(self):
+        self.page.get_by_role("navigation", name="Main navigation", exact=True).get_by_role("button", name=re.compile(r"^Friends")).click()
+        panel = self.page.get_by_role("main").locator(".connections-panel")
+        expect(panel).to_be_visible()
+        return panel
+
+    def expect_pending_badge(self, count):
+        desktop = self.page.locator(".desktop-nav .nav-badge")
+        mobile = self.page.locator(".mobile-nav .nav-badge")
+        if count:
+            expect(desktop).to_have_text(str(count))
+            expect(mobile).to_have_text(str(count))
+        else:
+            expect(desktop).to_have_count(0)
+            expect(mobile).to_have_count(0)
+
+    def test_18_main_friends_uses_real_connections_and_updates_navigation(self):
+        """The primary Friends screen uses hosted API contracts, never sample friends."""
+        self.sign_in()
+        self.close_account()
+        self.expect_pending_badge(1)
+        panel = self.main_connections()
+        expect(panel.get_by_text("Test Bea", exact=True)).to_be_visible()
+        for sample in ["Bea", "Luis", "Paolo", "Ana"]:
+            expect(panel.get_by_text(sample, exact=True)).to_have_count(0)
+        expect(self.page.get_by_role("main").get_by_text("Ana wants to connect", exact=True)).to_have_count(0)
+        panel.get_by_label("Find someone by username", exact=True).fill("@nico_real_test")
+        panel.get_by_role("button", name="Find", exact=True).click()
+        panel.get_by_role("button", name="Send friend request to Test Nico", exact=True).click()
+        expect(panel.get_by_role("status").filter(has_text="Request sent to Test Nico")).to_be_visible()
+        self.expect_pending_badge(1)  # An outgoing request must not increase the incoming badge.
+        self.assertEqual(self.service.matching("/rest/v1/rpc/search_people", "POST")[-1]["body"], {"search_text": "nico_real_test"})
+        self.assertEqual(self.service.matching("/rest/v1/rpc/send_friend_request", "POST")[-1]["body"], {"target_id": TARGET_ID})
+        panel.get_by_role("button", name=re.compile(r"^Requests")).click()
+        panel.get_by_role("button", name="Cancel friend request to Test Nico", exact=True).click()
+        expect(panel.get_by_role("status").filter(has_text="Friend request cancelled")).to_be_visible()
+        self.assertEqual(self.service.matching("/rest/v1/rpc/cancel_friend_request", "POST")[-1]["body"], {"request_id": OUTGOING_REQUEST_ID})
+        panel.get_by_role("button", name="Accept friend request from Test Ana", exact=True).click()
+        expect(panel.get_by_role("status").filter(has_text="now friends")).to_be_visible()
+        self.expect_pending_badge(0)
+        self.assertEqual(self.service.matching("/rest/v1/rpc/respond_friend_request", "POST")[-1]["body"], {"request_id": INCOMING_REQUEST_ID, "accept_request": True})
+        self.assertIsNone(self.demo_state(USER_ID)["sharing"], "Real friendship must not enable demo or location sharing")
+        self.assertEqual(self.demo_state(USER_ID)["friendIds"], ["bea", "luis", "paolo"], "Real friendship must not change sample sharing viewers")
+        panel.get_by_role("button", name=re.compile(r"^Friends")).click()
+        panel.get_by_role("button", name="Remove Test Bea as a friend", exact=True).click()
+        panel.get_by_role("button", name="Yes, remove", exact=True).click()
+        expect(panel.get_by_role("status").filter(has_text="Friend removed")).to_be_visible()
+        self.assertEqual(self.service.matching("/rest/v1/rpc/remove_friend", "POST")[-1]["body"], {"target_id": FRIEND_ID})
+        panel.get_by_role("button", name="Block Test Ana", exact=True).click()
+        panel.get_by_role("button", name="Yes, block", exact=True).click()
+        expect(panel.get_by_role("status").filter(has_text="Person blocked")).to_be_visible()
+        self.assertEqual(self.service.matching("/rest/v1/rpc/block_person", "POST")[-1]["body"], {"target_id": INCOMING_ID})
+        panel.get_by_role("button", name=re.compile(r"^Blocked")).click()
+        panel.get_by_role("button", name="Unblock Blocked member", exact=True).click()
+        expect(panel.get_by_role("status").filter(has_text="Person unblocked")).to_be_visible()
+        self.assertEqual(self.service.matching("/rest/v1/rpc/unblock_person", "POST")[-1]["body"], {"target_id": INCOMING_ID})
+        self.assertEqual(self.service.friendships, [])
+        self.page.set_viewport_size({"width": 375, "height": 812})
+        self.assertLessEqual(panel.bounding_box()["width"], 375)
+
+    def test_19_main_friends_decline_failure_and_outgoing_only_badges(self):
+        """Failed mutations keep real state; outgoing requests do not create alerts."""
+        self.sign_in()
+        self.close_account()
+        panel = self.main_connections()
+        panel.get_by_role("button", name=re.compile(r"^Requests")).click()
+        self.service.mutation_error = True
+        panel.get_by_role("button", name="Decline friend request from Test Ana", exact=True).click()
+        expect(panel.get_by_role("alert")).to_contain_text("don’t have permission")
+        self.expect_pending_badge(1)
+        self.assertEqual(len(self.service.requests), 1)
+        self.service.mutation_error = False
+        panel.get_by_role("button", name="Decline friend request from Test Ana", exact=True).click()
+        expect(panel.get_by_role("status").filter(has_text="Friend request declined")).to_be_visible()
+        self.expect_pending_badge(0)
+        self.assertEqual(self.service.matching("/rest/v1/rpc/respond_friend_request", "POST")[-1]["body"], {"request_id": INCOMING_REQUEST_ID, "accept_request": False})
+        panel.get_by_label("Find someone by username", exact=True).fill("nico_real_test")
+        panel.get_by_role("button", name="Find", exact=True).click()
+        panel.get_by_role("button", name="Send friend request to Test Nico", exact=True).click()
+        expect(panel.get_by_role("status").filter(has_text="Request sent")).to_be_visible()
+        self.expect_pending_badge(0)
+        expect(panel.get_by_role("button", name="Cancel friend request to Test Nico", exact=True)).to_be_visible()
+        self.assertEqual(self.service.friendships[0]["user_b"], FRIEND_ID)
+        self.assertIsNone(self.demo_state(USER_ID)["sharing"])
+
+    def test_20_main_friends_empty_failure_and_account_switch_keep_data_separate(self):
+        """No anonymous names or another account's list can fill a failed/empty request."""
+        self.service.connection_error = True
+        self.sign_in()
+        self.close_account()
+        panel = self.main_connections()
+        expect(panel.get_by_role("alert")).to_contain_text("database setup is missing")
+        expect(panel.get_by_text("Your list isn’t available yet.", exact=True)).to_be_visible()
+        for sample in ["Bea", "Luis", "Paolo", "Ana", "Test Bea"]:
+            expect(panel.get_by_text(sample, exact=True)).to_have_count(0)
+        self.expect_pending_badge(0)
+        self.service.connection_error = False
+        panel.get_by_role("button", name="Try again", exact=True).click()
+        expect(panel.get_by_text("Test Bea", exact=True)).to_be_visible()
+        self.expect_pending_badge(1)
+        self.open_account().get_by_role("button", name="Sign out", exact=True).click()
+        expect(self.account().get_by_role("button", name="Sign in to TARA", exact=True)).to_be_visible()
+        self.service.switch_user(SECOND_USER_ID, "Luna Other", "luna_other", "luna@example.test")
+        self.submit_sign_in(self.account())
+        self.close_account()
+        panel = self.page.get_by_role("main").locator(".connections-panel")
+        expect(panel.get_by_text("Your circle starts with a hello.", exact=True)).to_be_visible()
+        expect(panel.get_by_text("Test Bea", exact=True)).to_have_count(0)
+        expect(panel.get_by_text("Ana wants to connect", exact=True)).to_have_count(0)
+        self.expect_pending_badge(0)
+        self.open_account().get_by_role("button", name="Sign out", exact=True).click()
+        expect(self.account().get_by_role("button", name="Sign in to TARA", exact=True)).to_be_visible()
+        self.close_account()
+        expect(self.page.get_by_role("main").get_by_text("Ana wants to connect", exact=True)).to_be_visible()
+        expect(self.page.get_by_role("main").locator(".connections-panel")).to_have_count(0)
+        self.expect_pending_badge(1)
+
+    def test_21_main_and_account_connections_share_refresh_and_request_state(self):
+        """Requests refreshed on the main screen appear in account controls and badges."""
+        self.service.requests = []
+        self.sign_in()
+        self.close_account()
+        self.expect_pending_badge(0)
+        panel = self.main_connections()
+        expect(panel.get_by_text("Test Bea", exact=True)).to_be_visible()
+        self.service.requests = [{"id": INCOMING_REQUEST_ID, "requester_id": INCOMING_ID, "recipient_id": USER_ID, "status": "pending", "created_at": NOW}]
+        panel.get_by_role("button", name="Refresh your connections", exact=True).click()
+        self.expect_pending_badge(1)
+        self.page.get_by_role("button", name="Open notifications", exact=True).click()
+        notices = self.page.get_by_role("dialog", name="A little heads-up.", exact=True)
+        expect(notices.get_by_text("Test Ana wants to connect", exact=True)).to_be_visible()
+        expect(notices.get_by_text("Ana wants to connect", exact=True)).to_have_count(0)
+        expect(notices.get_by_text("Bea’s making coffee plans", exact=True)).to_have_count(0)
+        notices.get_by_role("button", name="Close dialog", exact=True).click()
+        self.page.set_viewport_size({"width": 375, "height": 812})
+        expect(self.page.locator(".mobile-nav .nav-badge")).to_be_visible()
+        self.page.get_by_role("button", name="Open your profile", exact=True).click()
+        account_panel = self.connections()
+        account_panel.get_by_role("button", name=re.compile(r"^Requests")).click()
+        account_panel.get_by_role("button", name="Decline friend request from Test Ana", exact=True).click()
+        expect(account_panel.get_by_role("status").filter(has_text="Friend request declined")).to_be_visible()
+        self.close_account()
+        panel = self.page.get_by_role("main").locator(".connections-panel")
+        panel.get_by_role("button", name=re.compile(r"^Requests")).click()
+        expect(panel.get_by_text("No incoming requests right now.", exact=True)).to_be_visible()
+        self.expect_pending_badge(0)
+        self.page.get_by_role("button", name="Open notifications", exact=True).click()
+        notices = self.page.get_by_role("dialog", name="A little heads-up.", exact=True)
+        expect(notices.get_by_text("No incoming friend requests right now.", exact=True)).to_be_visible()
+        expect(notices.get_by_text("Test Ana wants to connect", exact=True)).to_have_count(0)
+        notices.get_by_role("button", name="Close dialog", exact=True).click()
+        self.assertIsNone(self.demo_state(USER_ID)["sharing"])
+
+
+    def test_22_old_account_fetch_cannot_repopulate_new_account_connections(self):
+        """A late network response after account switch must never restore old friends."""
+        self.sign_in()
+        self.close_account()
+        panel = self.main_connections()
+        expect(panel.get_by_text("Test Bea", exact=True)).to_be_visible()
+        held = []
+        old_friends = json.loads(json.dumps(self.service.friendships))
+
+        def hold_one_friendship_read(route):
+            if not held:
+                held.append(route)
+            else:
+                self.service.handle(route)
+
+        self.context.route(f"**{MOCK_HOST}/rest/v1/friendships?*", hold_one_friendship_read)
+        with self.page.expect_request(f"**{MOCK_HOST}/rest/v1/friendships?*"):
+            panel.get_by_role("button", name="Refresh your connections", exact=True).click()
+        self.open_account().get_by_role("button", name="Sign out", exact=True).click()
+        expect(self.account().get_by_role("button", name="Sign in to TARA", exact=True)).to_be_visible()
+        self.service.switch_user(SECOND_USER_ID, "Luna Other", "luna_other", "luna@example.test")
+        self.submit_sign_in(self.account())
+        self.close_account()
+        panel = self.page.get_by_role("main").locator(".connections-panel")
+        expect(panel.get_by_text("Your circle starts with a hello.", exact=True)).to_be_visible()
+        self.assertEqual(len(held), 1)
+        self.page.evaluate("""() => {
+            window.__oldConnectionsLeaked = false;
+            new MutationObserver(() => {
+                if (document.querySelector('main .connections-panel')?.textContent.includes('Test Bea')) {
+                    window.__oldConnectionsLeaked = true;
+                }
+            }).observe(document.querySelector('main'), {subtree: true, childList: true, characterData: true});
+        }""")
+        with self.page.expect_response(re.compile(r"/rest/v1/profiles\?.*id=in")):
+            held[0].fulfill(status=200, headers={"access-control-allow-origin": "*", "content-type": "application/json"}, body=json.dumps(old_friends))
+        self.page.evaluate("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))")
+        self.assertFalse(self.page.evaluate("window.__oldConnectionsLeaked"), "Old account friends must never appear, even for one render")
+        expect(panel.get_by_text("Your circle starts with a hello.", exact=True)).to_be_visible()
+        expect(panel.get_by_text("Test Bea", exact=True)).to_have_count(0)
+        self.expect_pending_badge(0)
+        self.assertIsNone(self.demo_state(SECOND_USER_ID)["sharing"])
+
+    def test_23_background_read_cannot_hide_completed_request_mutation(self):
+        """An RPC finishing during a stale read must trigger a fresh committed snapshot."""
+        self.sign_in()
+        self.close_account()
+        panel = self.main_connections()
+        panel.get_by_role("button", name=re.compile(r"^Requests")).click()
+        self.expect_pending_badge(1)
+        held_rpc = []
+        held_read = []
+        old_requests = json.loads(json.dumps(self.service.requests))
+        self.context.route(f"**{MOCK_HOST}/rest/v1/rpc/respond_friend_request", lambda route: held_rpc.append(route))
+
+        def hold_one_request_read(route):
+            if not held_read:
+                held_read.append(route)
+                self.page.evaluate("window.__heldConnectionRead = true")
+            else:
+                self.service.handle(route)
+
+        self.context.route(f"**{MOCK_HOST}/rest/v1/friend_requests?*", hold_one_request_read)
+        with self.page.expect_request(f"**{MOCK_HOST}/rest/v1/rpc/respond_friend_request"):
+            panel.get_by_role("button", name="Accept friend request from Test Ana", exact=True).click()
+        with self.page.expect_request(f"**{MOCK_HOST}/rest/v1/friend_requests?*"):
+            self.page.evaluate("window.dispatchEvent(new Event('focus'))")
+        self.page.wait_for_function("window.__heldConnectionRead === true")
+        self.assertEqual(len(held_rpc), 1)
+        self.assertEqual(len(held_read), 1)
+        self.service.handle(held_rpc[0])
+        expect(panel.get_by_role("status").filter(has_text="now friends")).to_be_visible()
+        held_read[0].fulfill(status=200, headers={"access-control-allow-origin": "*", "content-type": "application/json"}, body=json.dumps(old_requests))
+        self.expect_pending_badge(0)
+        expect(panel.get_by_text("No incoming requests right now.", exact=True)).to_be_visible()
+        panel.get_by_role("button", name=re.compile(r"^Friends")).click()
+        expect(panel.get_by_text("Test Ana", exact=True)).to_be_visible()
+        self.assertIsNone(self.demo_state(USER_ID)["sharing"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarStack } from "../components/ui";
 import { useIdentity } from "../account/useIdentity";
+import { useAccount } from "../account/AccountProvider";
+import ConnectionsPanel from "../account/ConnectionsPanel";
 import { people } from "../data";
 import type { PersonId } from "../types";
 import "./friends.css";
@@ -30,7 +32,34 @@ interface FriendsProps {
   onShare: () => void;
 }
 
-export default function Friends({
+export default function Friends(props: FriendsProps) {
+  const { session, loading } = useAccount();
+  if (loading) {
+    return (
+      <div className="card friends-account-loading" role="status">
+        Loading your connections…
+      </div>
+    );
+  }
+  if (session) {
+    return (
+      <div className="friends-screen friends-real" key={session.user.id}>
+        <section className="card friends-real-intro" aria-label="Real connections">
+          <span className="eyebrow">REAL CONNECTIONS</span>
+          <h2>Your people, for real.</h2>
+          <p>
+            Manage your friends and requests here. The feed, map, plans, and
+            circles remain sample content.
+          </p>
+          <ConnectionsPanel />
+        </section>
+      </div>
+    );
+  }
+  return <DemoFriends {...props} />;
+}
+
+function DemoFriends({
   friendIds,
   requestStatus,
   onAccept,
@@ -173,7 +202,10 @@ export default function Friends({
         </div>
         <div>
           <h2>Good things start with your people.</h2>
-          <p>Add a friend. Make a plan. Stay a little closer.</p>
+          <p>
+            Sample friends and requests, saved only on this device. Sign in to
+            manage real connections.
+          </p>
         </div>
         <button
           className="button button-primary friends-add-button"

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   ArrowUpRight,
   Ban,
@@ -15,17 +15,17 @@ import {
   X,
 } from "lucide-react";
 import { useAccount } from "./AccountProvider";
+import { useConnections } from "./ConnectionsProvider";
 import {
   blockPerson,
   cancelFriendRequest,
-  fetchConnections,
   removeConnection,
   respondFriendRequest,
   searchPeople,
   sendFriendRequest,
   unblockPerson,
 } from "./connections";
-import type { Connections, Profile } from "./types";
+import type { Profile } from "./types";
 import "./connections.css";
 
 type View = "friends" | "requests" | "blocked";
@@ -60,16 +60,20 @@ function errorText(error: unknown) {
 }
 
 export default function ConnectionsPanel() {
-  const { session, profile } = useAccount();
+  const { session } = useAccount();
   const userId = session?.user.id;
-  const [data, setData] = useState<Connections | null>(null);
+  const { data, refreshing, error: fetchError, refresh } = useConnections();
+  const panelId = useId();
+  const titleId = `${panelId}-title`;
+  const searchId = `${panelId}-username`;
+  const hintId = `${panelId}-hint`;
   const [view, setView] = useState<View>("friends");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Profile[] | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [searching, setSearching] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState("");
+  const [actionError, setError] = useState("");
+  const error = actionError || fetchError;
   const [message, setMessage] = useState("");
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const confirmationRef = useRef<HTMLDivElement>(null);
@@ -77,27 +81,15 @@ export default function ConnectionsPanel() {
   const generation = useRef(0);
   const searchGeneration = useRef(0);
 
-  const refresh = useCallback(async () => {
-    if (!userId) return;
-    const current = generation.current;
-    setRefreshing(true);
+  function retryRefresh() {
     setError("");
-    try {
-      const next = await fetchConnections(userId);
-      if (current !== generation.current) return;
-      setData(next);
-    } catch (cause) {
-      if (current !== generation.current) return;
-      setError(errorText(cause));
-    } finally {
-      if (current === generation.current) setRefreshing(false);
-    }
-  }, [userId]);
+    setMessage("");
+    void refresh();
+  }
 
   useEffect(() => {
     generation.current += 1;
     searchGeneration.current += 1;
-    setData(null);
     setResults(null);
     setQuery("");
     setView("friends");
@@ -106,12 +98,11 @@ export default function ConnectionsPanel() {
     setConfirmation(null);
     setBusy(null);
     setSearching(false);
-    if (userId) void refresh();
     return () => {
       generation.current += 1;
       searchGeneration.current += 1;
     };
-  }, [userId, refresh]);
+  }, [userId]);
 
   useEffect(() => {
     if (!confirmation) return;
@@ -169,7 +160,7 @@ export default function ConnectionsPanel() {
     action: () => Promise<void>,
     success: string,
   ) {
-    if (busy) return;
+    if (busy || refreshing || fetchError) return;
     const current = generation.current;
     setBusy(key);
     setError("");
@@ -180,7 +171,7 @@ export default function ConnectionsPanel() {
       setConfirmation(null);
       setMessage(success);
       // A refreshed snapshot determines friendship/request status. No local demo fallback.
-      await refresh();
+      await refresh(true);
     } catch (cause) {
       if (current === generation.current) setError(errorText(cause));
     } finally {
@@ -188,9 +179,9 @@ export default function ConnectionsPanel() {
     }
   }
 
-  if (!userId || !profile) return null;
+  if (!userId) return null;
 
-  const disabled = !!busy || refreshing;
+  const disabled = !!busy || refreshing || !!fetchError;
   const requestsCount = data
     ? data.incoming.length + data.outgoing.length
     : null;
@@ -200,13 +191,13 @@ export default function ConnectionsPanel() {
   );
 
   return (
-    <section className="connections-panel" aria-labelledby="connections-title">
+    <section className="connections-panel" aria-labelledby={titleId}>
       <div className="connections-heading">
         <div>
           <span className="connections-kicker">
             <Heart size={12} /> YOUR REAL-WORLD CIRCLE
           </span>
-          <h3 id="connections-title">A little hello starts here.</h3>
+          <h3 id={titleId}>A little hello starts here.</h3>
         </div>
         <button
           type="button"
@@ -214,7 +205,7 @@ export default function ConnectionsPanel() {
           aria-label="Refresh your connections"
           title="Refresh connections"
           disabled={refreshing || !!busy}
-          onClick={() => void refresh()}
+          onClick={retryRefresh}
         >
           <RefreshCw
             size={17}
@@ -224,7 +215,8 @@ export default function ConnectionsPanel() {
       </div>
       <p className="connections-intro">
         Find a friend by username, then send a request. Refresh to check for new
-        activity.
+        activity. These are real account connections, separate from the sample feed,
+        map, plans, and circles.
       </p>
 
       <form
@@ -234,12 +226,12 @@ export default function ConnectionsPanel() {
           void search();
         }}
       >
-        <label htmlFor="connections-username">Find someone by username</label>
+        <label htmlFor={searchId}>Find someone by username</label>
         <div className="connections-search-row">
           <div className="connections-search-field">
             <Search size={17} aria-hidden="true" />
             <input
-              id="connections-username"
+              id={searchId}
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value);
@@ -252,7 +244,7 @@ export default function ConnectionsPanel() {
               autoCapitalize="none"
               spellCheck={false}
               maxLength={41}
-              aria-describedby="connections-search-hint"
+              aria-describedby={hintId}
               disabled={!!busy}
             />
           </div>
@@ -265,7 +257,7 @@ export default function ConnectionsPanel() {
             {searching ? "Finding…" : "Find"}
           </button>
         </div>
-        <span id="connections-search-hint">
+        <span id={hintId}>
           Use at least 3 letters, numbers, or underscores.
         </span>
       </form>
@@ -417,7 +409,7 @@ export default function ConnectionsPanel() {
             <button
               type="button"
               className="button button-soft"
-              onClick={() => void refresh()}
+              onClick={retryRefresh}
             >
               Try again
             </button>
@@ -649,7 +641,7 @@ export default function ConnectionsPanel() {
             <button
               type="button"
               className="button button-coral"
-              disabled={!!busy}
+              disabled={disabled}
               onClick={() => {
                 const target = confirmation.person;
                 const blocking = confirmation.kind === "block";
