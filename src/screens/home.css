@@ -1,0 +1,711 @@
+.home-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.journey-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 265px;
+  border-radius: 25px;
+  background: #ffd447;
+  padding: 27px 30px;
+  box-shadow: 0 6px 14px #b7a16808;
+}
+.journey-copy {
+  position: relative;
+  z-index: 2;
+  max-width: 65%;
+}
+.journey-kicker {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+  color: #705919;
+  margin-bottom: 13px;
+}
+.journey-copy h2 {
+  font-size: 35px;
+  line-height: 1.08;
+  letter-spacing: -1.1px;
+  font-weight: 850;
+  margin: 0 0 13px;
+  color: #172137;
+}
+.journey-copy p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #685628;
+  margin: 0 0 21px;
+}
+.journey-share {
+  font-size: 12px !important;
+  min-height: 42px;
+  gap: 8px;
+  box-shadow: 0 5px 0 #d8ae30;
+}
+.journey-illustration {
+  position: absolute;
+  width: 253px;
+  height: 270px;
+  right: 0;
+  bottom: -8px;
+  z-index: 1;
+}
+.journey-status {
+  border: 1px solid #f6ded7;
+  border-radius: 16px;
+  background: #fff0eb;
+  display: flex;
+  align-items: center;
+  text-align: left;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 17px;
+  margin: 15px 0 30px;
+  color: #253047;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.journey-status:hover {
+  background: #ffe9e1;
+  transform: translateY(-1px);
+}
+.journey-status-icon {
+  width: 35px;
+  height: 35px;
+  background: #ffddd5;
+  color: #f7786f;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  flex: none;
+}
+.journey-status > span:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+.journey-status strong {
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 750;
+}
+.journey-status small {
+  font-size: 10px;
+  color: #8c7470;
+  line-height: 1.4;
+}
+.journey-status > svg {
+  color: #a58f89;
+  flex: none;
+}
+.journey-status-active {
+  background: #e8f5ef;
+  border-color: #d4e9df;
+}
+.journey-status-active .journey-status-icon {
+  background: #d1ecdf;
+  color: #2d967d;
+}
+.journey-status-active small {
+  color: #5b7c70;
+}
+.home-feed-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.home-feed-heading .eyebrow {
+  font-size: 9px;
+  color: #a39888;
+  letter-spacing: 1.35px;
+  font-weight: 750;
+}
+.home-feed-heading h2 {
+  font-size: 21px;
+  letter-spacing: -0.6px;
+  line-height: 1.3;
+  margin: 7px 0 0;
+  font-weight: 800;
+}
+.home-check-in {
+  width: 34px !important;
+  height: 34px !important;
+  background: #fff !important;
+  border: 1px solid #eae4db !important;
+  border-radius: 11px !important;
+  flex: none;
+}
+.home-feed-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 19px 0 16px;
+}
+.home-feed-filters > button {
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  color: #928b83;
+  font-size: 11px;
+  font-weight: 650;
+  padding: 7px 13px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.home-feed-filters > button:hover {
+  background: #f1ece4;
+}
+.home-feed-filters > button.selected {
+  background: #efe8dc;
+  color: #4e493f;
+}
+.home-feed-filters > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  color: #aaa298;
+  margin-left: auto;
+}
+.home-feed-filters > span > span {
+  width: 5px;
+  height: 5px;
+  background: #b8c5a1;
+  border-radius: 50%;
+}
+.home-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+}
+.feed-card {
+  padding: 22px !important;
+  border: 1px solid #eee8df !important;
+  box-shadow: 0 3px 14px #77644404;
+}
+.feed-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.feed-author > div:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.feed-author strong {
+  font-size: 12px;
+  line-height: 1.2;
+}
+.feed-post-type {
+  font-weight: 400;
+  color: #9c958c;
+  font-size: 11px;
+  margin-left: 4px;
+}
+.feed-author small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #a29a91;
+  font-size: 9px;
+}
+.feed-time {
+  margin-left: auto;
+  font-size: 10px;
+  color: #b2a99f;
+  align-self: flex-start;
+  padding-top: 4px;
+  white-space: nowrap;
+}
+.feed-meetup-body {
+  display: flex;
+  align-items: center;
+  gap: 19px;
+  padding: 21px 0 19px;
+}
+.feed-meetup-copy {
+  flex: 1;
+  min-width: 0;
+}
+.feed-plan-badge {
+  display: inline-flex;
+  border-radius: 5px;
+  background: #fff3d4;
+  color: #a98a3c;
+  font-weight: 800;
+  font-size: 8px;
+  letter-spacing: 0.8px;
+  padding: 5px 7px;
+  margin-bottom: 10px;
+}
+.feed-card h3 {
+  font-size: 23px;
+  letter-spacing: -0.7px;
+  line-height: 1.22;
+  font-weight: 800;
+  margin: 0 0 9px;
+}
+.feed-meetup-copy > p {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #998f83;
+  margin: 0 0 17px;
+  max-width: 200px;
+}
+.feed-plan-date {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: #7b756e;
+}
+.feed-plan-date span {
+  color: #c7bfb5;
+}
+.feed-plan-place {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: #9a8c81;
+  margin-top: 8px;
+}
+.feed-plan-place svg {
+  color: #ff6a7c;
+  stroke: #ff6a7c;
+  flex: none;
+}
+.coffee-art {
+  width: 151px;
+  height: 147px;
+  object-fit: cover;
+  border-radius: 16px;
+  flex: none;
+  transform: rotate(2deg);
+  box-shadow: 2px 7px 0 #f5ecdc;
+}
+.feed-meetup-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid #f1ede7;
+  padding-top: 17px;
+}
+.feed-going {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.feed-going > span {
+  font-size: 10px;
+  color: #9b9185;
+  line-height: 1.5;
+}
+.feed-meetup-footer > .button {
+  font-size: 11px;
+  min-height: 35px;
+  padding: 8px 16px;
+  gap: 7px;
+  flex: none;
+}
+.feed-arrival-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 0 14px;
+}
+.feed-arrival-body p {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #928b82;
+  margin: 0 0 12px;
+}
+.feed-arrival-body h3 {
+  margin-bottom: 7px;
+}
+.feed-arrival-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  color: #8eae97;
+  line-height: 1.5;
+}
+.feed-home-illustration {
+  width: 71px;
+  height: 71px;
+  background: #f1eafb;
+  border-radius: 23px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex: none;
+  color: #aa8cda;
+  transform: rotate(6deg);
+  margin-right: 3px;
+}
+.feed-home-illustration > svg:first-child {
+  transform: rotate(-6deg);
+}
+.feed-home-illustration > svg:last-child {
+  position: absolute;
+  right: 0;
+  top: -3px;
+  color: #eabf43;
+  fill: #f4d765;
+}
+.feed-reactions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 7px;
+}
+.feed-like {
+  border: 0;
+  background: #fff0ef;
+  color: #fa7880;
+  border-radius: 20px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 11px;
+  font-size: 11px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.feed-like:hover {
+  transform: scale(1.04);
+}
+.feed-liked {
+  background: #ffdae0;
+  color: #ed5674;
+}
+.feed-comment-button {
+  border: 0;
+  background: transparent;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: #b2a89b;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 6px 0;
+}
+.feed-comment-button:hover {
+  color: #756854;
+}
+.feed-comments {
+  border-top: 1px solid #f0ebe3;
+  margin-top: 15px;
+  padding-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+.feed-comments form {
+  display: flex;
+  align-items: center;
+  border: 1px solid #e9e2d9;
+  border-radius: 14px;
+  padding: 3px 5px 3px 11px;
+  background: #fcfaf6;
+  gap: 6px;
+}
+.feed-comments input {
+  border: 0;
+  background: transparent;
+  width: 100%;
+  outline: none;
+  font: inherit;
+  font-size: 12px;
+  color: #313746;
+  min-width: 0;
+}
+.feed-comments form:focus-within {
+  outline: 2px solid #e4be4c;
+  outline-offset: 2px;
+}
+.feed-comments form .icon-button {
+  width: 33px;
+  height: 33px;
+  border-radius: 10px;
+  color: #b2943e;
+}
+.feed-comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.feed-comment p {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #8b8174;
+  margin: 0;
+  background: #f8f5ef;
+  border-radius: 0 12px 12px 12px;
+  padding: 8px 12px;
+  overflow-wrap: anywhere;
+}
+.feed-comment strong {
+  display: block;
+  font-size: 10px;
+  color: #363b47;
+  margin-bottom: 2px;
+}
+.feed-checkin-message {
+  font-size: 17px;
+  line-height: 1.5;
+  margin: 17px 0;
+  color: #333c4c;
+  overflow-wrap: anywhere;
+}
+.feed-you {
+  font-size: 9px;
+  font-weight: 400;
+  color: #a79b8d;
+  margin-left: 4px;
+}
+.feed-new-check-in {
+  animation: feed-in 0.35s ease-out;
+}
+.home-feed-end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 32px 16px 10px;
+  color: #aa9e8d;
+}
+.home-feed-end-spark {
+  display: grid;
+  place-items: center;
+  background: #f0e9dc;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  color: #c5af7b;
+  margin-bottom: 12px;
+}
+.home-feed-end strong {
+  font-size: 11px;
+  color: #a0927f;
+}
+.home-feed-end p {
+  font-size: 10px;
+  margin: 6px 0 12px;
+}
+.home-feed-end button {
+  border: 0;
+  background: transparent;
+  color: #b09b72;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+.home-feed-end button:hover {
+  color: #755f3e;
+}
+@keyframes feed-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (min-width: 1200px) {
+  .journey-hero {
+    min-height: 281px;
+    padding: 30px 32px;
+  }
+  .journey-copy h2 {
+    font-size: 39px;
+  }
+  .journey-illustration {
+    width: 270px;
+    height: 285px;
+    right: 8px;
+  }
+  .journey-copy p {
+    font-size: 13px;
+  }
+  .journey-share {
+    margin-top: 1px;
+  }
+}
+@media (max-width: 600px) {
+  .journey-hero {
+    padding: 25px 22px;
+    min-height: 248px;
+    border-radius: 22px;
+  }
+  .journey-copy {
+    max-width: 75%;
+  }
+  .journey-kicker {
+    font-size: 7px;
+    letter-spacing: 0.7px;
+    margin-bottom: 12px;
+  }
+  .journey-copy h2 {
+    font-size: 31px;
+  }
+  .journey-copy p {
+    font-size: 11px;
+    margin-bottom: 18px;
+  }
+  .journey-illustration {
+    right: -25px;
+    width: 214px;
+    height: 230px;
+    bottom: -5px;
+  }
+  .journey-share {
+    font-size: 11px !important;
+    padding: 10px 15px !important;
+    min-height: 39px;
+  }
+  .journey-status {
+    padding: 11px 12px;
+    gap: 9px;
+    margin-bottom: 26px;
+  }
+  .journey-status strong {
+    font-size: 11px;
+  }
+  .journey-status small {
+    font-size: 9px;
+  }
+  .journey-status-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .home-feed-heading h2 {
+    font-size: 19px;
+  }
+  .home-feed-heading .eyebrow {
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+  .home-feed-filters > span {
+    font-size: 8px;
+  }
+  .feed-card {
+    padding: 17px !important;
+  }
+  .feed-meetup-body {
+    gap: 11px;
+    padding-top: 19px;
+  }
+  .feed-meetup-copy > p {
+    font-size: 10px;
+    margin-bottom: 13px;
+  }
+  .feed-card h3 {
+    font-size: 21px;
+  }
+  .coffee-art {
+    width: 112px;
+    height: 122px;
+  }
+  .feed-plan-date {
+    font-size: 10px;
+  }
+  .feed-plan-place {
+    font-size: 9px;
+  }
+  .feed-plan-badge {
+    font-size: 7px;
+    letter-spacing: 0.7px;
+  }
+  .feed-meetup-footer > .button {
+    font-size: 10px;
+    padding: 8px 11px;
+  }
+  .feed-going {
+    gap: 6px;
+  }
+  .feed-going > span {
+    font-size: 9px;
+    max-width: 62px;
+  }
+  .feed-post-type {
+    font-size: 10px;
+    margin-left: 2px;
+  }
+  .feed-author strong {
+    font-size: 11px;
+  }
+  .feed-time {
+    font-size: 9px;
+  }
+  .feed-arrival-body p {
+    font-size: 10px;
+  }
+  .feed-home-illustration {
+    width: 60px;
+    height: 60px;
+    border-radius: 19px;
+  }
+  .feed-home-illustration > svg:first-child {
+    width: 33px;
+  }
+  .home-feed-end {
+    padding-top: 27px;
+  }
+}
+@media (max-width: 370px) {
+  .home-feed-filters > span {
+    display: none;
+  }
+  .journey-hero {
+    padding-left: 17px;
+  }
+  .journey-illustration {
+    right: -34px;
+    width: 202px;
+  }
+  .journey-share {
+    font-size: 10px !important;
+  }
+  .feed-author {
+    gap: 8px;
+  }
+  .feed-post-type {
+    font-size: 9px;
+  }
+  .coffee-art {
+    width: 96px;
+    height: 111px;
+  }
+  .feed-card h3 {
+    font-size: 20px;
+  }
+  .feed-plan-place {
+    font-size: 8px;
+  }
+}
