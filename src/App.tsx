@@ -33,6 +33,9 @@ import { Avatar, AvatarStack, Logo, Modal } from "./components/ui";
 import Home from "./screens/Home";
 import { useAccount } from "./account/AccountProvider";
 import { useConnections } from "./account/ConnectionsProvider";
+import { useSocial } from "./social/SocialProvider";
+import RealHome from "./social/RealHome";
+import RealPlans from "./social/RealPlans";
 import Friends from "./screens/Friends";
 import Plans from "./screens/Plans";
 import MapScreen, { MiniMap } from "./screens/Map";
@@ -96,6 +99,7 @@ function formatDuration(minutes: number | null) {
 export default function App() {
   const account = useAccount();
   const connections = useConnections();
+  const social = useSocial();
   const identity = useIdentity();
   const ownerId = account.session?.user.id ?? null;
   const activityOwner = account.loading ? "restoring" : (ownerId ?? "demo");
@@ -318,6 +322,11 @@ export default function App() {
   }
   const joinedPlans = state.plans.filter((plan) => plan.joined);
   const upcomingPlan = joinedPlans[0] ?? state.plans[0];
+  const joinedPlanCount = account.session
+    ? social.data?.plans.filter((plan) =>
+        plan.attendees.some((person) => person.id === ownerId),
+      ).length ?? 0
+    : joinedPlans.length;
   const friendResults = (["ana", "nico"] as PersonId[]).filter((id) =>
     `${people[id].fullName} ${people[id].handle}`
       .toLowerCase()
@@ -370,8 +379,8 @@ export default function App() {
                   <i className="nav-badge" aria-hidden="true">
                     {pendingRequests}
                   </i>
-                ) : id === "plans" && joinedPlans.length ? (
-                  <i className="nav-count">{joinedPlans.length}</i>
+                ) : id === "plans" && joinedPlanCount ? (
+                  <i className="nav-count">{joinedPlanCount}</i>
                 ) : tab === id ? (
                   <span className="nav-active-dot" />
                 ) : null}
@@ -382,7 +391,8 @@ export default function App() {
             className="button button-primary sidebar-share"
             onClick={openShare}
           >
-            <Navigation size={16} fill="currentColor" /> Share a journey
+            <Navigation size={16} fill="currentColor" />{" "}
+            {account.session ? "Try a demo journey" : "Share a journey"}
           </button>
           <div className="sidebar-note">
             <span className="sidebar-note-art" aria-hidden="true">
@@ -441,7 +451,7 @@ export default function App() {
               <span className="demo-badge">
                 <span />{" "}
                 {account.session
-                  ? tab === "friends" ? "Real connections" : "Sample content"
+                  ? tab === "map" ? "Sample map" : tab === "friends" ? "Real connections" : "Real activity"
                   : "Interactive demo"}
               </span>
               <button
@@ -507,7 +517,7 @@ export default function App() {
                     </strong>
                     <p>
                       {account.session
-                        ? "Manage your real connections. This feed and its journeys remain samples."
+                        ? "Use real friends, feed, and plans. Map and journey tools remain demos."
                         : "Create your own account. The sample feed and journeys stay separate."}
                     </p>
                   </div>
@@ -520,7 +530,13 @@ export default function App() {
                   </button>
                 </section>
               )}
-              {tab === "home" && (
+              {tab === "home" && account.loading && (
+                <div className="card account-loading" role="status">Loading your account…</div>
+              )}
+              {tab === "home" && !account.loading && account.session && (
+                <RealHome key={ownerId} />
+              )}
+              {tab === "home" && !account.loading && !account.session && (
                 <Home
                   key={activityOwner}
                   plans={state.plans}
@@ -558,7 +574,13 @@ export default function App() {
                   }}
                 />
               )}
-              {tab === "plans" && (
+              {tab === "plans" && account.loading && (
+                <div className="card account-loading" role="status">Loading your account…</div>
+              )}
+              {tab === "plans" && !account.loading && account.session && (
+                <RealPlans key={ownerId} />
+              )}
+              {tab === "plans" && !account.loading && !account.session && (
                 <Plans
                   key={activityOwner}
                   plans={state.plans}
@@ -636,7 +658,7 @@ export default function App() {
                   Open circle map <ArrowRight size={15} />
                 </button>
               </section>
-              {upcomingPlan && (
+              {!account.session && upcomingPlan && (
                 <section className="card rail-plan">
                   <div className="rail-heading">
                     <h2>Something to look forward to</h2>
@@ -840,7 +862,7 @@ export default function App() {
         </Modal>
       )}
 
-      {modal === "plan" && (
+      {!account.session && modal === "plan" && (
         <Modal
           title="The group chat has a plan."
           subtitle="Give your next good memory a time and place."
@@ -1010,7 +1032,7 @@ export default function App() {
         </Modal>
       )}
 
-      {modal === "checkin" && (
+      {!account.session && modal === "checkin" && (
         <Modal
           title="A little hello goes a long way."
           subtitle="Let your people know how you’re doing."

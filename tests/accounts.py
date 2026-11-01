@@ -65,6 +65,7 @@ class MockAccountService:
         self.requests = [{"id": INCOMING_REQUEST_ID, "requester_id": INCOMING_ID, "recipient_id": USER_ID, "status": "pending", "created_at": NOW}]
         self.blocks = []
         self.recovery_redirect = None
+        self.social_posts = []
 
     def switch_user(self, user_id, display_name, username, email):
         """Select a second fictional account after sign-out, with isolated records."""
@@ -75,6 +76,7 @@ class MockAccountService:
         self.friendships = []
         self.requests = []
         self.blocks = []
+        self.social_posts = []
 
     def user(self):
         return {
@@ -166,6 +168,11 @@ class MockAccountService:
             return
         if url.path.startswith("/rest/v1/rpc/"):
             name = url.path.split("/")[-1]
+            if name == "social_snapshot":
+                # Account regressions use an empty real feed. Social mutation and
+                # multi-user behavior are exercised by tests/social.py.
+                respond({"posts": self.social_posts, "plans": []})
+                return
             if self.mutation_error:
                 fail("42501", "permission denied", 403)
                 return
@@ -489,26 +496,27 @@ class AccountIntegrationTests(unittest.TestCase):
         self.assertLessEqual(self.account().bounding_box()["width"], 375)
 
     def test_10_demo_content_is_scoped_to_anonymous_and_each_account(self):
-        """Posts, comments, and sharing cannot cross anonymous/account boundaries."""
+        """Saved sample content survives, but is never imported into real account feeds."""
         self.visit()
         self.post_checkin("Anonymous-only note")
         self.post_comment("Anonymous-only comment")
         anon = self.demo_state()
         self.assertEqual(anon["checkIns"][0]["message"], "Anonymous-only note")
+        # Simulate sample records already saved before the real-feed upgrade.
+        self.page.evaluate("""owner => {
+            const saved = JSON.parse(localStorage.getItem('yeto-demo-v1'));
+            saved.checkIns = [{id: 'legacy-maria-note', message: 'Maria-only sample check-in', audience: 'Close friends'}];
+            saved.comments = ['Maria-only sample comment'];
+            localStorage.setItem(`yeto-demo-v1:${owner}`, JSON.stringify(saved));
+        }""", USER_ID)
         self.submit_sign_in(self.open_account())
         self.close_account()
         main = self.page.get_by_role("main")
-        expect(main.get_by_text("Anonymous-only note", exact=True)).to_have_count(0)
-        self.assertEqual(self.demo_state(USER_ID)["checkIns"], [])
-        self.assertEqual(self.demo_state(USER_ID)["comments"], [])
-        self.post_checkin("Maria-only check-in")
-        self.post_comment("Maria-only comment")
-        own_post = main.locator("article").filter(has_text="Maria-only check-in")
-        expect(own_post.locator(".feed-author strong")).to_contain_text("Maria")
-        expect(own_post.get_by_role("img", name="Maria Test", exact=True)).to_be_visible()
-        own_comment = main.locator(".feed-comment").filter(has_text="Maria-only comment")
-        expect(own_comment.locator("strong")).to_have_text("Maria")
-        expect(own_comment.get_by_role("img", name="Maria Test", exact=True)).to_be_visible()
+        for sample in ["Anonymous-only note", "Maria-only sample check-in", "Maria-only sample comment"]:
+            expect(main.get_by_text(sample, exact=True)).to_have_count(0)
+        self.assertEqual(self.demo_state(USER_ID)["checkIns"][0]["message"], "Maria-only sample check-in")
+        self.assertEqual(self.demo_state(USER_ID)["comments"], ["Maria-only sample comment"])
+        self.page.get_by_role("navigation", name="Main navigation", exact=True).get_by_role("button", name="Map", exact=True).click()
         main.get_by_role("button", name="Share a journey", exact=True).click()
         self.page.get_by_role("dialog").get_by_role("button", name="Until you stop", exact=True).click()
         self.page.get_by_role("dialog").get_by_role("button", name="Start demo journey", exact=True).click()
@@ -520,12 +528,14 @@ class AccountIntegrationTests(unittest.TestCase):
         self.close_account()
         expect(main.get_by_role("heading", name="Tara, Mika!", exact=True)).to_be_visible()
         expect(main.get_by_text("Anonymous-only note", exact=True)).to_be_visible()
-        expect(main.get_by_text("Maria-only check-in", exact=True)).to_have_count(0)
+        expect(main.get_by_text("Anonymous-only comment", exact=True)).to_have_count(0)
+        self.assertEqual(self.demo_state()["comments"], ["Anonymous-only comment"])
+        expect(main.get_by_text("Maria-only sample check-in", exact=True)).to_have_count(0)
         self.assertIsNone(self.demo_state()["sharing"])
         self.submit_sign_in(self.open_account())
         self.close_account()
-        expect(main.get_by_text("Maria-only check-in", exact=True)).to_be_visible()
-        self.assertEqual(self.demo_state(USER_ID)["comments"], ["Maria-only comment"])
+        expect(main.get_by_text("Maria-only sample check-in", exact=True)).to_have_count(0)
+        self.assertEqual(self.demo_state(USER_ID)["comments"], ["Maria-only sample comment"])
         self.assertIsNone(self.demo_state(USER_ID)["sharing"])
         self.open_account().get_by_role("button", name="Sign out", exact=True).click()
         expect(self.account().get_by_role("button", name="Sign in to TARA", exact=True)).to_be_visible()
@@ -533,17 +543,16 @@ class AccountIntegrationTests(unittest.TestCase):
         self.submit_sign_in(self.account())
         self.close_account()
         self.expect_shell_identity("Luna Other", "luna_other", "Luna")
-        expect(main.get_by_text("Maria-only check-in", exact=True)).to_have_count(0)
-        expect(main.get_by_text("Anonymous-only note", exact=True)).to_have_count(0)
+        for sample in ["Maria-only sample check-in", "Anonymous-only note", "Maria-only sample comment"]:
+            expect(main.get_by_text(sample, exact=True)).to_have_count(0)
         self.assertEqual(self.demo_state(SECOND_USER_ID)["comments"], [])
         self.assertEqual(self.demo_state(SECOND_USER_ID)["checkIns"], [])
-        self.post_checkin("Luna-only check-in")
         self.page.reload()
         self.expect_shell_identity("Luna Other", "luna_other", "Luna")
-        expect(main.get_by_text("Luna-only check-in", exact=True)).to_be_visible()
-        expect(main.get_by_text("Maria-only check-in", exact=True)).to_have_count(0)
-        self.assertEqual(self.demo_state(USER_ID)["checkIns"][0]["message"], "Maria-only check-in")
+        expect(main.get_by_text("Maria-only sample check-in", exact=True)).to_have_count(0)
+        self.assertEqual(self.demo_state(USER_ID)["checkIns"][0]["message"], "Maria-only sample check-in")
         self.assertEqual(self.demo_state()["checkIns"][0]["message"], "Anonymous-only note")
+        self.assertEqual(self.service.matching("/rest/v1/rpc/create_social_post", "POST"), [], "Sample records must never be uploaded automatically")
 
     def test_11_missing_profile_uses_own_metadata_without_demo_identity(self):
         """A profile failure can use auth metadata, but never Mika or a cached handle."""
@@ -594,14 +603,18 @@ class AccountIntegrationTests(unittest.TestCase):
         expect(self.page.locator(".sidebar-profile .avatar-identity-initials")).to_have_text("É🌻")
 
     def test_14_cross_tab_account_switch_clears_unsent_drafts(self):
-        """Auth changes from another tab cannot expose one account's private drafts."""
+        """Auth changes from another tab discard real post and comment drafts."""
+        self.service.social_posts = [{
+            "id": "10000000-0000-4000-8000-000000000001", "author": dict(self.service.profile),
+            "body": "Maria shared fixture", "created_at": NOW, "audience_count": 0,
+            "liked_by_me": False, "like_count": 0, "comments": [],
+        }]
         self.sign_in()
         self.close_account()
         main = self.page.get_by_role("main")
-        main.get_by_role("button", name="Say something nice", exact=True).click()
-        main.get_by_role("textbox", name="Comment on Paolo’s check-in", exact=True).fill("Maria private unsent comment")
-        main.get_by_role("button", name="Post a check-in", exact=True).click()
-        self.page.get_by_role("dialog").get_by_role("textbox", name="What’s your little update?", exact=True).fill("Maria private unsent check-in")
+        main.get_by_role("textbox", name="Your update", exact=True).fill("Maria private unsent check-in")
+        main.get_by_role("button", name="Comments on update by Maria Test", exact=True).click()
+        main.get_by_role("textbox", name="Comment on update by Maria Test", exact=True).fill("Maria private unsent comment")
         second = self.context.new_page()
         second.set_default_timeout(9000)
         second.on("pageerror", lambda error: self.errors.append(str(error)))
@@ -611,29 +624,36 @@ class AccountIntegrationTests(unittest.TestCase):
         second.get_by_role("dialog", name="Your TARA account", exact=True).get_by_role("button", name="Sign out", exact=True).click()
         expect(self.page.get_by_role("heading", name="Tara, Mika!", exact=True)).to_be_visible()
         expect(self.page.get_by_role("dialog")).to_have_count(0)
+        expect(main.get_by_text("Maria shared fixture", exact=True)).to_have_count(0)
         self.service.switch_user(SECOND_USER_ID, "Luna Other", "luna_other", "luna@example.test")
+        self.service.social_posts = [{
+            "id": "20000000-0000-4000-8000-000000000002", "author": dict(self.service.profile),
+            "body": "Luna shared fixture", "created_at": NOW, "audience_count": 0,
+            "liked_by_me": False, "like_count": 0, "comments": [],
+        }]
         second_account = second.get_by_role("dialog", name="Your TARA account", exact=True)
         second_account.get_by_label("Email address", exact=True).fill("luna@example.test")
         second_account.get_by_label(re.compile(r"^Password")).fill(TEST_PASSWORD)
         second_account.get_by_role("button", name="Sign in to TARA", exact=True).click()
         expect(second_account.get_by_label("Display name", exact=True)).to_have_value("Luna Other")
         self.expect_shell_identity("Luna Other", "luna_other", "Luna")
-        comment = main.get_by_role("textbox", name="Comment on Paolo’s check-in", exact=True)
-        if not comment.is_visible():
-            main.get_by_role("button", name="Say something nice", exact=True).click()
-        expect(comment).to_have_value("")
-        main.get_by_role("button", name="Post a check-in", exact=True).click()
-        checkin = self.page.get_by_role("dialog")
-        expect(checkin.get_by_role("textbox", name="What’s your little update?", exact=True)).not_to_have_value("Maria private unsent check-in")
-        expect(checkin.locator(".checkin-author strong")).to_have_text("Luna Other")
+        expect(main.get_by_role("textbox", name="Your update", exact=True)).to_have_value("")
+        expect(main.get_by_text("Maria shared fixture", exact=True)).to_have_count(0)
+        expect(main.get_by_role("textbox", name="Comment on update by Maria Test", exact=True)).to_have_count(0)
+        main.get_by_role("button", name="Comments on update by Luna Other", exact=True).click()
+        expect(main.get_by_role("textbox", name="Comment on update by Luna Other", exact=True)).to_have_value("")
         self.assertEqual(self.demo_state(USER_ID)["checkIns"], [])
         self.assertEqual(self.demo_state(SECOND_USER_ID)["comments"], [])
+        self.assertEqual(self.service.matching("/rest/v1/rpc/create_social_post", "POST"), [])
+        self.assertEqual(self.service.matching("/rest/v1/rpc/add_social_comment", "POST"), [])
+        self.assertNotIn("Maria private unsent", json.dumps(self.service.calls))
         second.close()
 
     def test_15_storage_write_failure_cannot_revive_stopped_sharing(self):
         """A stale stored session stays ended when stopping could not be persisted."""
         self.sign_in()
         self.close_account()
+        self.page.get_by_role("navigation", name="Main navigation", exact=True).get_by_role("button", name="Map", exact=True).click()
         main = self.page.get_by_role("main")
         main.get_by_role("button", name="Share a journey", exact=True).click()
         self.page.get_by_role("dialog").get_by_role("button", name="Until you stop", exact=True).click()
