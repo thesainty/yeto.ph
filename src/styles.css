@@ -283,23 +283,10 @@ select {
   width: max-content;
   color: #20293e;
 }
-.logo > span {
-  position: relative;
-  font-size: 53px;
-  line-height: 0.95;
-  font-weight: 900;
-  letter-spacing: -4px;
-}
-.logo > span > svg {
-  position: absolute;
-  width: 28px;
-  height: 32px;
-  right: -24px;
-  top: -6px;
-  fill: none;
-  stroke: #ffce3f;
-  stroke-width: 5;
-  stroke-linecap: round;
+.tara-wordmark {
+  display: block;
+  width: 156px;
+  height: auto;
 }
 .logo small {
   font-family: "DM Sans", sans-serif;
@@ -309,15 +296,8 @@ select {
   margin-top: 9px;
   margin-left: 4px;
 }
-.logo-compact > span {
-  font-size: 27px;
-  letter-spacing: -1.9px;
-}
-.logo-compact > span > svg {
-  width: 17px;
-  height: 22px;
-  right: -16px;
-  top: -5px;
+.logo-compact .tara-wordmark {
+  width: 88px;
 }
 .brand-button {
   border: 0;
@@ -822,8 +802,8 @@ select {
   opacity: 0.3;
   margin-right: 7px;
 }
-.main-footer .logo > span {
-  font-size: 23px;
+.main-footer .tara-wordmark {
+  width: 72px;
 }
 .main-footer > span {
   font-size: 9px;
@@ -1532,15 +1512,8 @@ select {
   .mobile-brand {
     display: block;
   }
-  .mobile-brand .logo > span {
-    font-size: 36px;
-    letter-spacing: -2.9px;
-  }
-  .mobile-brand .logo > span > svg {
-    width: 21px;
-    height: 24px;
-    right: -19px;
-    top: -6px;
+  .mobile-brand .tara-wordmark {
+    width: 110px;
   }
   .topbar-actions {
     gap: 13px;

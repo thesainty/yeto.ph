@@ -173,7 +173,7 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    document.title = `Yeto — ${nav.find((item) => item.id === tab)?.label} | Tara, together.`;
+    document.title = `TARA — ${nav.find((item) => item.id === tab)?.label} | Your people. A little closer.`;
   }, [tab]);
   useEffect(() => {
     if (!toast) return;
@@ -338,7 +338,7 @@ export default function App() {
           <button
             className="brand-button"
             onClick={() => navigate("home")}
-            aria-label="Yeto home"
+            aria-label="TARA home"
           >
             <Logo />
           </button>
@@ -401,7 +401,7 @@ export default function App() {
               <small>
                 {identity.username
                   ? `@${identity.username}`
-                  : "Your Yeto account"}
+                  : "Your TARA account"}
               </small>
             </span>
             <ChevronDown size={16} />
@@ -419,7 +419,7 @@ export default function App() {
             <button
               className="brand-button mobile-brand"
               onClick={() => navigate("home")}
-              aria-label="Yeto home"
+              aria-label="TARA home"
             >
               <Logo compact />
             </button>
@@ -572,7 +572,7 @@ export default function App() {
               )}
               <footer className="main-footer">
                 <Logo compact />
-                <span>A little closer, wherever life takes you.</span>
+                <span>Your people. A little closer.</span>
                 <Heart size={12} fill="currentColor" />
               </footer>
             </main>
@@ -664,7 +664,7 @@ export default function App() {
               </div>
               <div className="rail-footer">
                 <span>Built with a little Filipino heart.</span>
-                <span>Private by choice. Together by Yeto.</span>
+                <span>Private by choice. Together by TARA.</span>
               </div>
             </aside>
           </div>
@@ -732,7 +732,7 @@ export default function App() {
             <div className="dialog-demo-note">
               <Info size={18} />
               <p>
-                This is a sample journey. Yeto isn’t accessing or sending your
+                This is a sample journey. TARA isn’t accessing or sending your
                 real location.
               </p>
             </div>
@@ -1101,7 +1101,7 @@ export default function App() {
 
       {modal === "account" && (
         <Modal
-          title="Your Yeto account"
+          title="Your TARA account"
           subtitle="Real connections start with a little hello."
           onClose={() => setModal(null)}
         >
@@ -1119,7 +1119,7 @@ export default function App() {
       {modal === "profile" && !account.session && (
         <Modal
           title={`Hey, ${identity.firstName}!`}
-          subtitle="Your little space in Yeto."
+          subtitle="Your little space in TARA."
           onClose={() => setModal(null)}
         >
           <div className="profile-summary">
@@ -1151,7 +1151,7 @@ export default function App() {
             <div>
               <strong>
                 {account.session
-                  ? "Your real Yeto account"
+                  ? "Your real TARA account"
                   : "Ready to make it yours?"}
               </strong>
               <p>

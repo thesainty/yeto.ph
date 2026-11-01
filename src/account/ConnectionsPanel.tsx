@@ -32,7 +32,7 @@ type View = "friends" | "requests" | "blocked";
 type Confirmation = { kind: "remove" | "block"; person: Profile };
 
 function personLabel(person: Profile) {
-  return person.display_name?.trim() || "Yeto friend";
+  return person.display_name?.trim() || "TARA friend";
 }
 
 function Initials({ person }: { person: Profile }) {

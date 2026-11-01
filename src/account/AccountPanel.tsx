@@ -39,7 +39,7 @@ function SetupGuide({ invalid }: { invalid: boolean }) {
       </span>
       <h3>Your people start with a little hello.</h3>
       <p className="account-setup-intro">
-        We’re getting real accounts ready. Your sample Yeto experience still
+        We’re getting real accounts ready. Your sample TARA experience still
         works while you connect the project.
       </p>
       {invalid && (
@@ -56,13 +56,13 @@ function SetupGuide({ invalid }: { invalid: boolean }) {
           <span>1</span>
           <div>
             <strong>Create your Supabase account</strong>
-            <p>Supabase securely handles sign-ins and saved data for Yeto.</p>
+            <p>Supabase securely handles sign-ins and saved data for TARA.</p>
           </div>
         </li>
         <li>
           <span>2</span>
           <div>
-            <strong>Create a project named Yeto</strong>
+            <strong>Connect your existing Supabase project</strong>
             <p>
               Keep the database password private. You won’t need to share it
               here.
@@ -230,7 +230,7 @@ export default function AccountPanel() {
       if (mode === "forgot") {
         await account.sendPasswordReset(email.trim());
         setMessage(
-          "If that email has a Yeto account, a reset link will arrive shortly. Check your inbox and spam folder.",
+          "If that email has a TARA account, a reset link will arrive shortly. Check your inbox and spam folder.",
         );
       } else if (mode === "signup") {
         const result = await account.signUp(
@@ -284,7 +284,7 @@ export default function AccountPanel() {
           </span>
           <div>
             <h3>A fresh start.</h3>
-            <p>Choose a new password for your Yeto account.</p>
+            <p>Choose a new password for your TARA account.</p>
           </div>
         </div>
         <form
@@ -549,10 +549,10 @@ export default function AccountPanel() {
           </h3>
           <p>
             {mode === "signup"
-              ? "Start your own little world in Yeto."
+              ? "Start your own little world in TARA."
               : mode === "forgot"
                 ? "We’ll send a link to reset your password."
-                : "Sign in to your own Yeto account."}
+                : "Sign in to your own TARA account."}
           </p>
         </div>
       </div>
@@ -633,10 +633,10 @@ export default function AccountPanel() {
             {busy
               ? "A little moment…"
               : mode === "signup"
-                ? "Create my Yeto account"
+                ? "Create my TARA account"
                 : mode === "forgot"
                   ? "Send reset link"
-                  : "Sign in to Yeto"}
+                  : "Sign in to TARA"}
           </button>
         </fieldset>
       </form>

@@ -10,15 +10,10 @@ export function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <div
       className={`logo${compact ? " logo-compact" : ""}`}
-      aria-label="Yeto — Tara, together."
+      aria-label="TARA — Your people. A little closer."
     >
-      <span>
-        yeto
-        <svg viewBox="0 0 36 40" aria-hidden="true">
-          <path d="M9 15 5 7M20 11l3-8M25 23l9-2" />
-        </svg>
-      </span>
-      {!compact && <small>Tara, together.</small>}
+      <img className="tara-wordmark" src="/tara-wordmark.svg" alt="TARA" width="1090" height="380" />
+      {!compact && <small>Your people. A little closer.</small>}
     </div>
   );
 }

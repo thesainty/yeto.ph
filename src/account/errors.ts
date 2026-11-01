@@ -36,16 +36,16 @@ export function accountError(error: unknown): Error {
     P0001:
       "That action is no longer available. Refresh your connections and try again.",
     PGRST202:
-      "The account database setup is missing. Apply the Yeto migration in the setup guide.",
+      "The account database setup is missing. Apply the TARA migration in the setup guide.",
     "42P01":
-      "The account database setup is missing. Apply the Yeto migration in the setup guide.",
+      "The account database setup is missing. Apply the TARA migration in the setup guide.",
     PGRST116:
       "Your profile isn’t available yet. Check the database setup, then try again.",
   };
   if (messages[code]) return new Error(messages[code]);
   if (error instanceof TypeError || code === "network_error")
     return new Error(
-      "We couldn’t reach Yeto’s account service. Check your connection and try again.",
+      "We couldn’t reach TARA’s account service. Check your connection and try again.",
     );
   return new Error(
     "We couldn’t complete that request. Please try again or check the project setup.",
