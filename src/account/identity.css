@@ -1,0 +1,19 @@
+.avatar.avatar-identity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8d87a;
+  color: #20293e;
+  font-family: "Nunito", sans-serif;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.avatar-identity-initials {
+  display: block;
+  max-width: 100%;
+  line-height: 1;
+  white-space: nowrap;
+}

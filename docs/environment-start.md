@@ -23,4 +23,4 @@ All profiles, notifications, map locations, and journeys are samples. This respo
 
 The onboarding configuration draft rejected install/start updates as uneditable. These files preserve the proposed instructions; their presence does not establish that environment configuration was saved or published.
 
-The optional account foundation adds `npm test` for 2 build-configuration checks and 12 PostgreSQL permission checks. These may need subprocess permission in the command sandbox. `tests/accounts.py` covers 8 account UI flows with intercepted fake HTTP and requires the two local servers described in its header. Do not mistake mocked tests for a hosted-project or email-delivery check.
+The optional account foundation adds `npm test` for 2 build-configuration checks and 12 PostgreSQL permission checks. These may need subprocess permission in the command sandbox. `tests/accounts.py` covers 17 account UI flows with intercepted fake HTTP and requires the two local servers described in its header. Do not mistake mocked tests for a hosted-project or email-delivery check.

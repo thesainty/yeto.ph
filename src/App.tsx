@@ -1,4 +1,11 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowDownLeft,
   ArrowRight,
@@ -29,7 +36,8 @@ import Friends from "./screens/Friends";
 import Plans from "./screens/Plans";
 import MapScreen, { MiniMap } from "./screens/Map";
 import { initialState, people } from "./data";
-import { loadState, STORAGE_KEY } from "./state";
+import { useDemoState } from "./useDemoState";
+import { useIdentity } from "./account/useIdentity";
 import type { Circle, PersonId, Plan, Tab } from "./types";
 
 const AccountPanel = lazy(() => import("./account/AccountPanel"));
@@ -46,7 +54,7 @@ const pageCopy: Record<
 > = {
   home: {
     eyebrow: "YOUR PEOPLE. YOUR LITTLE WORLD.",
-    title: "Tara, Mika!",
+    title: "Tara!",
     subtitle: "Good things happen when we’re together.",
   },
   map: {
@@ -86,7 +94,13 @@ function formatDuration(minutes: number | null) {
 
 export default function App() {
   const account = useAccount();
-  const [state, setState] = useState(loadState);
+  const identity = useIdentity();
+  const ownerId = account.session?.user.id ?? null;
+  const activityOwner = account.loading ? "restoring" : (ownerId ?? "demo");
+  const { state, setState, storageUnavailable } = useDemoState(
+    ownerId,
+    account.loading,
+  );
   const [tab, setTab] = useState<Tab>(readTab);
   const [modal, setModal] = useState<
     | "share"
@@ -99,7 +113,6 @@ export default function App() {
     | null
   >(null);
   const [toast, setToast] = useState("");
-  const [storageUnavailable, setStorageUnavailable] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const [audience, setAudience] = useState<Circle>("Close friends");
   const [duration, setDuration] = useState<number | null>(60);
@@ -123,18 +136,33 @@ export default function App() {
     day: "2-digit",
   }).format(new Date());
 
+  useLayoutEffect(() => {
+    // Account changes also discard unsent local form drafts before paint.
+    setToast("");
+    setAudience("Close friends");
+    setDuration(60);
+    setDestination("");
+    setFriendSearch("");
+    setCheckInText("Home safely! Ingat, everyone.");
+    setCheckInAudience("Close friends");
+    setPlanTitle("");
+    setPlanPlace("");
+    setPlanDate("");
+    setPlanTime("15:00");
+    setPlanKind("coffee");
+    setResetConfirmed(false);
+    setModal((current) => (current === "account" ? current : null));
+  }, [account.session?.user.id]);
+
   useEffect(() => {
     if (account.recovery || (account.profileError && !account.session))
       setModal("account");
   }, [account.recovery, account.profileError, account.session]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      setStorageUnavailable(true);
-    }
-  }, [state]);
+    if (account.session && modal === "profile") setModal("account");
+  }, [account.session, modal]);
+
   useEffect(() => {
     const handle = () => setTab(readTab());
     window.addEventListener("popstate", handle);
@@ -359,14 +387,22 @@ export default function App() {
             className="sidebar-profile"
             onClick={() => {
               setResetConfirmed(false);
-              setModal("profile");
+              setModal(account.session ? "account" : "profile");
             }}
-            aria-label="Open Mika’s profile"
+            aria-label={
+              identity.isDemo
+                ? "Open Mika’s profile"
+                : "Open your account profile"
+            }
           >
             <Avatar id="mika" size={41} />
             <span>
-              <strong>Mika Reyes</strong>
-              <small>@mikareyes</small>
+              <strong>{identity.displayName}</strong>
+              <small>
+                {identity.username
+                  ? `@${identity.username}`
+                  : "Your Yeto account"}
+              </small>
             </span>
             <ChevronDown size={16} />
           </button>
@@ -403,7 +439,7 @@ export default function App() {
                 className="topbar-profile"
                 onClick={() => {
                   setResetConfirmed(false);
-                  setModal("profile");
+                  setModal(account.session ? "account" : "profile");
                 }}
                 aria-label="Open your profile"
               >
@@ -421,7 +457,11 @@ export default function App() {
               <div className="page-heading">
                 <span className="eyebrow">{copy.eyebrow}</span>
                 <h1>
-                  {copy.title}
+                  <span>
+                    {tab === "home"
+                      ? `Tara, ${identity.firstName}!`
+                      : copy.title}
+                  </span>
                   {tab === "home" && (
                     <Sun className="heading-sun" size={34} strokeWidth={2.7} />
                   )}
@@ -445,7 +485,7 @@ export default function App() {
                   <div>
                     <strong>
                       {account.session
-                        ? `Connected as ${account.profile?.display_name ?? "your Yeto account"}`
+                        ? `Connected as ${identity.displayName}`
                         : "Your people, for real."}
                     </strong>
                     <p>
@@ -465,6 +505,7 @@ export default function App() {
               )}
               {tab === "home" && (
                 <Home
+                  key={activityOwner}
                   plans={state.plans}
                   liked={state.liked}
                   comments={state.comments}
@@ -490,6 +531,7 @@ export default function App() {
               )}
               {tab === "map" && (
                 <MapScreen
+                  key={activityOwner}
                   sharing={state.sharing}
                   friendIds={state.friendIds}
                   onShare={openShare}
@@ -501,6 +543,7 @@ export default function App() {
               )}
               {tab === "plans" && (
                 <Plans
+                  key={activityOwner}
                   plans={state.plans}
                   onJoin={toggleJoin}
                   onCreate={() => setModal("plan")}
@@ -508,6 +551,7 @@ export default function App() {
               )}
               {tab === "friends" && (
                 <Friends
+                  key={activityOwner}
                   friendIds={state.friendIds}
                   requestStatus={state.requestStatus}
                   onAccept={acceptRequest}
@@ -612,7 +656,7 @@ export default function App() {
                 <button
                   onClick={() => {
                     setResetConfirmed(false);
-                    setModal("profile");
+                    setModal(account.session ? "account" : "profile");
                   }}
                 >
                   A little peace of mind <ArrowRight size={12} />
@@ -966,7 +1010,7 @@ export default function App() {
             <div className="checkin-author">
               <Avatar id="mika" size={44} />
               <div>
-                <strong>Mika Reyes</strong>
+                <strong>{identity.displayName}</strong>
                 <small>Checking in with your people</small>
               </div>
             </div>
@@ -1068,20 +1112,22 @@ export default function App() {
               </div>
             }
           >
-            <AccountPanel />
+            <AccountPanel key={ownerId ?? "demo"} />
           </Suspense>
         </Modal>
       )}
-      {modal === "profile" && (
+      {modal === "profile" && !account.session && (
         <Modal
-          title="Hey, Mika!"
+          title={`Hey, ${identity.firstName}!`}
           subtitle="Your little space in Yeto."
           onClose={() => setModal(null)}
         >
           <div className="profile-summary">
             <Avatar id="mika" size={78} />
-            <h3>Mika Reyes</h3>
-            <p>@mikareyes · Philippines</p>
+            <h3>{identity.displayName}</h3>
+            <p>
+              {identity.username ? `@${identity.username} · ` : ""}Philippines
+            </p>
             <span className="pill">
               <Sparkles size={13} /> Demo profile
             </span>
@@ -1125,9 +1171,10 @@ export default function App() {
             <div>
               <strong>You’re in control.</strong>
               <p>
-                This prototype uses fictional profiles and an illustrated map.
-                It doesn’t request GPS access, create real accounts, or contact
-                other people. Demo changes are saved in this browser.
+                The sample feed and illustrated map don’t request GPS access or
+                contact other people. Sample changes are saved in this browser.
+                Your real account and connections are managed through Set up
+                your account.
               </p>
             </div>
           </div>

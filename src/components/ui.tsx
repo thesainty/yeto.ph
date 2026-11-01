@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { X } from "lucide-react";
 import { people } from "../data";
 import type { PersonId } from "../types";
+import { useIdentity } from "../account/useIdentity";
+import "../account/identity.css";
 
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
@@ -47,6 +49,26 @@ export function Avatar({
   size?: number;
   online?: boolean;
 }) {
+  const identity = useIdentity();
+  if (id === "mika" && !identity.isDemo) {
+    return (
+      <span
+        className="avatar avatar-identity"
+        style={{
+          width: size,
+          height: size,
+          fontSize: Math.max(9, Math.round(size * 0.34)),
+        }}
+        role="img"
+        aria-label={identity.displayName}
+      >
+        <span className="avatar-identity-initials" aria-hidden="true">
+          {identity.initials}
+        </span>
+        {online && <i className="avatar-online" />}
+      </span>
+    );
+  }
   const person = people[id];
   const look = looks[id];
   return (

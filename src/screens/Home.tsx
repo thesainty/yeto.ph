@@ -15,6 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import { Avatar, AvatarStack } from "../components/ui";
+import { useIdentity } from "../account/useIdentity";
 import type { CheckIn, Plan, Sharing, Tab } from "../types";
 import "./home.css";
 
@@ -243,6 +244,7 @@ export default function Home({
   onComment,
   onNavigate,
 }: Props) {
+  const identity = useIdentity();
   const [showComments, setShowComments] = useState(false);
   const [comment, setComment] = useState("");
   const [filter, setFilter] = useState<"all" | "check-ins">("all");
@@ -343,7 +345,7 @@ export default function Home({
               <Avatar id="mika" size={43} />
               <div>
                 <strong>
-                  Mika <span className="feed-you">you</span>
+                  {identity.firstName} <span className="feed-you">you</span>
                 </strong>
                 <small>
                   <Users size={11} /> {checkIn.audience}
@@ -487,7 +489,7 @@ export default function Home({
                 <div className="feed-comment" key={`${index}-${message}`}>
                   <Avatar id="mika" size={28} />
                   <p>
-                    <strong>Mika</strong>
+                    <strong>{identity.firstName}</strong>
                     {message}
                   </p>
                 </div>

@@ -198,7 +198,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       value={{
         configuration: accountConfiguration,
         session,
-        profile,
+        profile: profile?.id === session?.user.id ? profile : null,
         loading,
         profileError,
         recovery,

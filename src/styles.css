@@ -1925,3 +1925,18 @@ select {
     font-size: 10px;
   }
 }
+/* Real account names and generated usernames can be longer than the preview persona. */
+.sidebar-profile > span:nth-child(2) {
+  min-width: 0;
+}
+.sidebar-profile strong,
+.sidebar-profile small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.page-heading h1 > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

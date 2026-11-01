@@ -1,10 +1,11 @@
 """Mocked account integration tests. These do NOT validate a hosted Supabase project.
 
 Start two Vite servers before running this file:
-  npm run dev -- --port 5173 --strictPort
+  VITE_SUPABASE_URL= VITE_SUPABASE_PUBLISHABLE_KEY= \
+  npm run dev -- --port 5190 --strictPort
   VITE_SUPABASE_URL=https://yeto-test.supabase.co \\
   VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_test_only \\
-  npm run dev -- --port 5180 --strictPort
+  npm run dev -- --port 5191 --strictPort
 
 Then: python tests/accounts.py
 Python Playwright and /usr/bin/chromium are required. YETO_DEMO_TEST_URL,
@@ -22,10 +23,11 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from playwright.sync_api import sync_playwright, expect
 
-DEMO_URL = os.environ.get("YETO_DEMO_TEST_URL", "http://127.0.0.1:5173")
-ACCOUNT_URL = os.environ.get("YETO_ACCOUNT_TEST_URL", "http://127.0.0.1:5180")
+DEMO_URL = os.environ.get("YETO_DEMO_TEST_URL", "http://127.0.0.1:5190")
+ACCOUNT_URL = os.environ.get("YETO_ACCOUNT_TEST_URL", "http://127.0.0.1:5191")
 MOCK_HOST = "yeto-test.supabase.co"
 USER_ID = "11111111-1111-4111-8111-111111111111"
+SECOND_USER_ID = "77777777-7777-4777-8777-777777777777"
 FRIEND_ID = "22222222-2222-4222-8222-222222222222"
 INCOMING_ID = "33333333-3333-4333-8333-333333333333"
 TARGET_ID = "44444444-4444-4444-8444-444444444444"
@@ -46,6 +48,10 @@ class MockAccountService:
         self.calls = []
         self.unhandled = []
         self.sign_in_error = False
+        self.signup_session = False
+        self.user_id = USER_ID
+        self.email = TEST_EMAIL
+        self.metadata_name = "Maria Test"
         self.profile_error = False
         self.connection_error = False
         self.mutation_error = False
@@ -60,13 +66,23 @@ class MockAccountService:
         self.blocks = []
         self.recovery_redirect = None
 
+    def switch_user(self, user_id, display_name, username, email):
+        """Select a second fictional account after sign-out, with isolated records."""
+        self.user_id = user_id
+        self.email = email
+        self.metadata_name = display_name
+        self.profile = {"id": user_id, "username": username, "display_name": display_name}
+        self.friendships = []
+        self.requests = []
+        self.blocks = []
+
     def user(self):
         return {
-            "id": USER_ID, "aud": "authenticated", "role": "authenticated", "email": TEST_EMAIL,
+            "id": self.user_id, "aud": "authenticated", "role": "authenticated", "email": self.email,
             "email_confirmed_at": NOW, "phone": "", "confirmed_at": NOW,
             "created_at": NOW, "updated_at": NOW,
             "app_metadata": {"provider": "email", "providers": ["email"]},
-            "user_metadata": {"display_name": self.profile["display_name"]},
+            "user_metadata": {"display_name": self.metadata_name},
             "identities": [], "is_anonymous": False,
         }
 
@@ -74,7 +90,7 @@ class MockAccountService:
         now = int(time.time())
         token = ".".join([
             encoded_json({"alg": "HS256", "typ": "JWT"}),
-            encoded_json({"sub": USER_ID, "aud": "authenticated", "role": "authenticated", "email": TEST_EMAIL, "iat": now, "exp": now + 3600}),
+            encoded_json({"sub": self.user_id, "aud": "authenticated", "role": "authenticated", "email": self.email, "iat": now, "exp": now + 3600}),
             "bW9ja19zaWduYXR1cmVfb25seQ",
         ])
         return {"access_token": token, "token_type": "bearer", "expires_in": 3600, "expires_at": now + 3600, "refresh_token": "mock-refresh-token-only", "user": self.user()}
@@ -104,7 +120,8 @@ class MockAccountService:
             respond({}, 200)
             return
         if url.path == "/auth/v1/signup":
-            respond(self.user())  # Email confirmation is required: no access token/session.
+            # Normally confirmation is required; one regression also covers auto-confirm projects.
+            respond(self.session() if self.signup_session else self.user())
             return
         if url.path == "/auth/v1/token":
             if self.sign_in_error and query.get("grant_type") == ["password"]:
@@ -128,7 +145,7 @@ class MockAccountService:
                 return
             if request.method == "PATCH":
                 self.profile.update(body)
-                respond({"id": USER_ID})
+                respond({"id": self.user_id})
                 return
             identity = query.get("id", [""])[0]
             if identity.startswith("in.("):
@@ -196,6 +213,19 @@ class AccountIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.context = self.browser.new_context(viewport={"width": 1440, "height": 1050})
         self.service = MockAccountService()
+        self.unexpected_remote_hosts = []
+        allowed_hosts = {urlparse(DEMO_URL).hostname, urlparse(ACCOUNT_URL).hostname}
+
+        def local_only(route):
+            host = urlparse(route.request.url).hostname
+            if host in allowed_hosts:
+                route.continue_()
+            else:
+                self.unexpected_remote_hosts.append(host)
+                route.abort()
+
+        # Refuse accidental real project/third-party calls even if a server is misconfigured.
+        self.context.route("**/*", local_only)
         self.context.route(f"**{MOCK_HOST}/**", self.service.handle)
         self.page = self.context.new_page()
         self.page.set_default_timeout(9000)
@@ -206,6 +236,7 @@ class AccountIntegrationTests(unittest.TestCase):
         self.context.close()
         self.assertEqual(self.errors, [], "Uncaught browser errors")
         self.assertEqual(self.service.unhandled, [], "Every fake account request must have an explicit fixture")
+        self.assertEqual(self.unexpected_remote_hosts, [], "Unexpected remote requests were blocked")
 
     def visit(self, url=ACCOUNT_URL):
         self.page.goto(url)
@@ -216,19 +247,54 @@ class AccountIntegrationTests(unittest.TestCase):
 
     def open_account(self):
         self.page.get_by_role("button", name="Open your profile", exact=True).click()
-        self.page.get_by_role("dialog").get_by_role("button", name="Set up your account", exact=True).click()
+        if self.account().count() == 0:
+            self.page.get_by_role("dialog").get_by_role("button", name="Set up your account", exact=True).click()
         expect(self.account()).to_be_visible()
         return self.account()
 
     def sign_in(self):
         self.visit()
-        dialog = self.open_account()
-        dialog.get_by_label("Email address", exact=True).fill(TEST_EMAIL)
+        return self.submit_sign_in(self.open_account())
+
+    def submit_sign_in(self, dialog):
+        dialog.get_by_label("Email address", exact=True).fill(self.service.email)
         dialog.get_by_label(re.compile(r"^Password")).fill(TEST_PASSWORD)
         dialog.get_by_role("button", name="Sign in to Yeto", exact=True).click()
-        expect(dialog.get_by_role("heading", name="Maria Test", exact=True)).to_be_visible()
-        expect(dialog.get_by_label("Display name", exact=True)).to_have_value("Maria Test")
+        expect(dialog.get_by_role("heading", name=self.service.profile["display_name"], exact=True)).to_be_visible()
+        expect(dialog.get_by_label("Display name", exact=True)).to_have_value(self.service.profile["display_name"])
         return dialog
+
+    def demo_state(self, owner=None):
+        key = "yeto-demo-v1" + (f":{owner}" if owner else "")
+        self.page.wait_for_function("key => localStorage.getItem(key) !== null", arg=key)
+        return self.page.evaluate("key => JSON.parse(localStorage.getItem(key))", key)
+
+    def close_account(self):
+        self.account().get_by_role("button", name="Close dialog", exact=True).click()
+
+    def expect_shell_identity(self, full_name, username, first_name):
+        expect(self.page.get_by_role("heading", name=f"Tara, {first_name}!", exact=True)).to_be_visible()
+        sidebar = self.page.locator(".sidebar-profile")
+        expect(sidebar).to_contain_text(full_name)
+        expect(sidebar).to_contain_text(f"@{username}")
+        expect(sidebar.get_by_role("img", name=full_name, exact=True)).to_be_visible()
+        expect(self.page.get_by_role("main").get_by_role("heading", name="Tara, Mika!", exact=True)).to_have_count(0)
+
+    def post_checkin(self, message):
+        self.page.get_by_role("main").get_by_role("button", name="Post a check-in", exact=True).click()
+        dialog = self.page.get_by_role("dialog")
+        dialog.get_by_role("textbox", name="What’s your little update?", exact=True).fill(message)
+        dialog.get_by_role("button", name="Post a check-in", exact=True).click()
+        expect(self.page.get_by_role("main").get_by_text(message, exact=True)).to_be_visible()
+
+    def post_comment(self, message):
+        main = self.page.get_by_role("main")
+        comment_input = main.get_by_role("textbox", name="Comment on Paolo’s check-in", exact=True)
+        if not comment_input.is_visible():
+            main.get_by_role("button", name=re.compile(r"^(Say something nice|[0-9]+ comments?)$")).click()
+        comment_input.fill(message)
+        main.get_by_role("button", name="Send comment", exact=True).click()
+        expect(main.get_by_text(message, exact=False)).to_be_visible()
 
     def connections(self):
         return self.account().get_by_role("region", name="A little hello starts here.", exact=True)
@@ -289,9 +355,7 @@ class AccountIntegrationTests(unittest.TestCase):
         expect(dialog.get_by_role("status").filter(has_text="Profile saved")).to_be_visible()
         self.assertEqual(self.service.matching("/rest/v1/profiles", "PATCH")[-1]["body"], {"username": "maria_updated", "display_name": "Maria Updated"})
         self.page.reload()
-        self.page.get_by_role("button", name="Open your profile", exact=True).click()
-        self.page.get_by_role("dialog").get_by_role("button", name="Manage account", exact=True).click()
-        dialog = self.account()
+        dialog = self.open_account()
         expect(dialog.get_by_label("Display name", exact=True)).to_have_value("Maria Updated")
         dialog.get_by_role("button", name="Sign out", exact=True).click()
         expect(dialog.get_by_role("button", name="Sign in to Yeto", exact=True)).to_be_visible()
@@ -364,7 +428,7 @@ class AccountIntegrationTests(unittest.TestCase):
         panel.get_by_role("button", name="Accept friend request from Test Ana", exact=True).click()
         expect(panel.get_by_role("status").filter(has_text="now friends")).to_be_visible()
         self.assertEqual(self.service.matching("/rest/v1/rpc/respond_friend_request", "POST")[-1]["body"], {"request_id": INCOMING_REQUEST_ID, "accept_request": True})
-        demo_state = self.page.evaluate("JSON.parse(localStorage.getItem('yeto-demo-v1'))")
+        demo_state = self.demo_state(self.service.user_id)
         self.assertIsNone(demo_state["sharing"])
         self.assertEqual(demo_state["friendIds"], ["bea", "luis", "paolo"])
         panel.get_by_role("button", name=re.compile("^Friends")).click()
@@ -399,6 +463,270 @@ class AccountIntegrationTests(unittest.TestCase):
         expect(panel.get_by_role("alert")).to_contain_text("don’t have permission")
         self.assertEqual(len(self.service.friendships), 1)
         expect(panel.get_by_text("Test Bea", exact=True)).to_be_visible()
+
+    def test_09_signedin_shell_profile_and_mobile_identity(self):
+        """The whole shell and profile entry follow the signed-in account."""
+        dialog = self.sign_in()
+        self.close_account()
+        self.expect_shell_identity("Maria Test", "maria_test", "Maria")
+        expect(self.page.locator(".sidebar-profile .avatar-identity-initials")).to_have_text("MT")
+        self.page.locator(".sidebar-profile").click()
+        expect(self.account().get_by_label("Display name", exact=True)).to_have_value("Maria Test")
+        expect(self.account().get_by_text("Demo profile", exact=True)).to_have_count(0)
+        self.account().get_by_label("Display name", exact=True).fill("Maria Updated")
+        self.account().get_by_label(re.compile(r"^Username")).fill("maria_updated")
+        self.account().get_by_role("button", name="Save profile", exact=True).click()
+        expect(self.account().get_by_role("status").filter(has_text="Profile saved")).to_be_visible()
+        self.close_account()
+        self.expect_shell_identity("Maria Updated", "maria_updated", "Maria")
+        expect(self.page.locator(".sidebar-profile .avatar-identity-initials")).to_have_text("MU")
+        self.page.reload()
+        self.expect_shell_identity("Maria Updated", "maria_updated", "Maria")
+        self.page.set_viewport_size({"width": 375, "height": 812})
+        self.page.get_by_role("button", name="Open your profile", exact=True).click()
+        expect(self.account().get_by_label("Display name", exact=True)).to_have_value("Maria Updated")
+        expect(self.account().get_by_text("Mika Reyes", exact=True)).to_have_count(0)
+        self.assertLessEqual(self.account().bounding_box()["width"], 375)
+
+    def test_10_demo_content_is_scoped_to_anonymous_and_each_account(self):
+        """Posts, comments, and sharing cannot cross anonymous/account boundaries."""
+        self.visit()
+        self.post_checkin("Anonymous-only note")
+        self.post_comment("Anonymous-only comment")
+        anon = self.demo_state()
+        self.assertEqual(anon["checkIns"][0]["message"], "Anonymous-only note")
+        self.submit_sign_in(self.open_account())
+        self.close_account()
+        main = self.page.get_by_role("main")
+        expect(main.get_by_text("Anonymous-only note", exact=True)).to_have_count(0)
+        self.assertEqual(self.demo_state(USER_ID)["checkIns"], [])
+        self.assertEqual(self.demo_state(USER_ID)["comments"], [])
+        self.post_checkin("Maria-only check-in")
+        self.post_comment("Maria-only comment")
+        own_post = main.locator("article").filter(has_text="Maria-only check-in")
+        expect(own_post.locator(".feed-author strong")).to_contain_text("Maria")
+        expect(own_post.get_by_role("img", name="Maria Test", exact=True)).to_be_visible()
+        own_comment = main.locator(".feed-comment").filter(has_text="Maria-only comment")
+        expect(own_comment.locator("strong")).to_have_text("Maria")
+        expect(own_comment.get_by_role("img", name="Maria Test", exact=True)).to_be_visible()
+        main.get_by_role("button", name="Share a journey", exact=True).click()
+        self.page.get_by_role("dialog").get_by_role("button", name="Until you stop", exact=True).click()
+        self.page.get_by_role("dialog").get_by_role("button", name="Start demo journey", exact=True).click()
+        expect(main.get_by_role("button", name="Stop sharing", exact=True)).to_be_visible()
+        self.assertIsNotNone(self.demo_state(USER_ID)["sharing"])
+        self.page.get_by_role("navigation", name="Main navigation", exact=True).get_by_role("button", name="Home", exact=True).click()
+        self.open_account().get_by_role("button", name="Sign out", exact=True).click()
+        expect(self.account().get_by_role("button", name="Sign in to Yeto", exact=True)).to_be_visible()
+        self.close_account()
+        expect(main.get_by_role("heading", name="Tara, Mika!", exact=True)).to_be_visible()
+        expect(main.get_by_text("Anonymous-only note", exact=True)).to_be_visible()
+        expect(main.get_by_text("Maria-only check-in", exact=True)).to_have_count(0)
+        self.assertIsNone(self.demo_state()["sharing"])
+        self.submit_sign_in(self.open_account())
+        self.close_account()
+        expect(main.get_by_text("Maria-only check-in", exact=True)).to_be_visible()
+        self.assertEqual(self.demo_state(USER_ID)["comments"], ["Maria-only comment"])
+        self.assertIsNone(self.demo_state(USER_ID)["sharing"])
+        self.open_account().get_by_role("button", name="Sign out", exact=True).click()
+        expect(self.account().get_by_role("button", name="Sign in to Yeto", exact=True)).to_be_visible()
+        self.service.switch_user(SECOND_USER_ID, "Luna Other", "luna_other", "luna@example.test")
+        self.submit_sign_in(self.account())
+        self.close_account()
+        self.expect_shell_identity("Luna Other", "luna_other", "Luna")
+        expect(main.get_by_text("Maria-only check-in", exact=True)).to_have_count(0)
+        expect(main.get_by_text("Anonymous-only note", exact=True)).to_have_count(0)
+        self.assertEqual(self.demo_state(SECOND_USER_ID)["comments"], [])
+        self.assertEqual(self.demo_state(SECOND_USER_ID)["checkIns"], [])
+        self.post_checkin("Luna-only check-in")
+        self.page.reload()
+        self.expect_shell_identity("Luna Other", "luna_other", "Luna")
+        expect(main.get_by_text("Luna-only check-in", exact=True)).to_be_visible()
+        expect(main.get_by_text("Maria-only check-in", exact=True)).to_have_count(0)
+        self.assertEqual(self.demo_state(USER_ID)["checkIns"][0]["message"], "Maria-only check-in")
+        self.assertEqual(self.demo_state()["checkIns"][0]["message"], "Anonymous-only note")
+
+    def test_11_missing_profile_uses_own_metadata_without_demo_identity(self):
+        """A profile failure can use auth metadata, but never Mika or a cached handle."""
+        self.service.profile_error = True
+        self.service.metadata_name = "Luna Metadata"
+        self.visit()
+        dialog = self.open_account()
+        dialog.get_by_label("Email address", exact=True).fill(TEST_EMAIL)
+        dialog.get_by_label(re.compile(r"^Password")).fill(TEST_PASSWORD)
+        dialog.get_by_role("button", name="Sign in to Yeto", exact=True).click()
+        expect(dialog.get_by_role("alert")).to_contain_text("database setup is missing")
+        self.close_account()
+        expect(self.page.get_by_role("heading", name="Tara, Luna!", exact=True)).to_be_visible()
+        sidebar = self.page.locator(".sidebar-profile")
+        expect(sidebar).to_contain_text("Luna Metadata")
+        expect(sidebar).not_to_contain_text("Mika")
+        expect(sidebar).not_to_contain_text("mikareyes")
+        expect(sidebar.get_by_role("img", name="Luna Metadata", exact=True)).to_be_visible()
+        self.page.reload()
+        expect(self.page.get_by_role("heading", name="Tara, Luna!", exact=True)).to_be_visible()
+        self.open_account()
+        expect(self.account().get_by_label("Display name", exact=True)).to_have_count(0)
+        expect(self.account().get_by_text("Mika Reyes", exact=True)).to_have_count(0)
+
+    def test_12_signup_session_immediately_updates_shell_identity(self):
+        """Auto-confirm signup projects must also replace the anonymous demo identity."""
+        self.service.signup_session = True
+        self.visit()
+        dialog = self.open_account()
+        dialog.get_by_role("button", name="Create account", exact=True).click()
+        dialog.get_by_label("Your name", exact=True).fill("Maria Test")
+        dialog.get_by_label("Email address", exact=True).fill(TEST_EMAIL)
+        dialog.get_by_label(re.compile(r"^Password")).fill(TEST_PASSWORD)
+        dialog.get_by_role("button", name="Create my Yeto account", exact=True).click()
+        expect(dialog.get_by_label("Display name", exact=True)).to_have_value("Maria Test")
+        self.close_account()
+        self.expect_shell_identity("Maria Test", "maria_test", "Maria")
+        self.page.reload()
+        self.expect_shell_identity("Maria Test", "maria_test", "Maria")
+
+    def test_13_unicode_account_avatar_keeps_complete_glyphs(self):
+        """Profile initials handle accented letters and emoji without broken glyphs."""
+        self.service.profile["display_name"] = "Élodie 🌻"
+        self.service.metadata_name = "Élodie 🌻"
+        self.sign_in()
+        self.close_account()
+        self.expect_shell_identity("Élodie 🌻", "maria_test", "Élodie")
+        expect(self.page.locator(".sidebar-profile .avatar-identity-initials")).to_have_text("É🌻")
+
+    def test_14_cross_tab_account_switch_clears_unsent_drafts(self):
+        """Auth changes from another tab cannot expose one account's private drafts."""
+        self.sign_in()
+        self.close_account()
+        main = self.page.get_by_role("main")
+        main.get_by_role("button", name="Say something nice", exact=True).click()
+        main.get_by_role("textbox", name="Comment on Paolo’s check-in", exact=True).fill("Maria private unsent comment")
+        main.get_by_role("button", name="Post a check-in", exact=True).click()
+        self.page.get_by_role("dialog").get_by_role("textbox", name="What’s your little update?", exact=True).fill("Maria private unsent check-in")
+        second = self.context.new_page()
+        second.set_default_timeout(9000)
+        second.on("pageerror", lambda error: self.errors.append(str(error)))
+        second.goto(ACCOUNT_URL)
+        expect(second.get_by_role("heading", name="Tara, Maria!", exact=True)).to_be_visible()
+        second.get_by_role("button", name="Open your profile", exact=True).click()
+        second.get_by_role("dialog", name="Your Yeto account", exact=True).get_by_role("button", name="Sign out", exact=True).click()
+        expect(self.page.get_by_role("heading", name="Tara, Mika!", exact=True)).to_be_visible()
+        expect(self.page.get_by_role("dialog")).to_have_count(0)
+        self.service.switch_user(SECOND_USER_ID, "Luna Other", "luna_other", "luna@example.test")
+        second_account = second.get_by_role("dialog", name="Your Yeto account", exact=True)
+        second_account.get_by_label("Email address", exact=True).fill("luna@example.test")
+        second_account.get_by_label(re.compile(r"^Password")).fill(TEST_PASSWORD)
+        second_account.get_by_role("button", name="Sign in to Yeto", exact=True).click()
+        expect(second_account.get_by_label("Display name", exact=True)).to_have_value("Luna Other")
+        self.expect_shell_identity("Luna Other", "luna_other", "Luna")
+        comment = main.get_by_role("textbox", name="Comment on Paolo’s check-in", exact=True)
+        if not comment.is_visible():
+            main.get_by_role("button", name="Say something nice", exact=True).click()
+        expect(comment).to_have_value("")
+        main.get_by_role("button", name="Post a check-in", exact=True).click()
+        checkin = self.page.get_by_role("dialog")
+        expect(checkin.get_by_role("textbox", name="What’s your little update?", exact=True)).not_to_have_value("Maria private unsent check-in")
+        expect(checkin.locator(".checkin-author strong")).to_have_text("Luna Other")
+        self.assertEqual(self.demo_state(USER_ID)["checkIns"], [])
+        self.assertEqual(self.demo_state(SECOND_USER_ID)["comments"], [])
+        second.close()
+
+    def test_15_storage_write_failure_cannot_revive_stopped_sharing(self):
+        """A stale stored session stays ended when stopping could not be persisted."""
+        self.sign_in()
+        self.close_account()
+        main = self.page.get_by_role("main")
+        main.get_by_role("button", name="Share a journey", exact=True).click()
+        self.page.get_by_role("dialog").get_by_role("button", name="Until you stop", exact=True).click()
+        self.page.get_by_role("dialog").get_by_role("button", name="Start demo journey", exact=True).click()
+        expect(main.get_by_role("button", name="Stop sharing", exact=True)).to_be_visible()
+        self.assertIsNotNone(self.demo_state(USER_ID)["sharing"])
+        self.page.evaluate("""() => {
+            window.__demoOriginalSetItem = Storage.prototype.setItem;
+            window.__demoWriteFailures = 0;
+            Storage.prototype.setItem = function(key, value) {
+                if (key.startsWith('yeto-demo-v1')) {
+                    window.__demoWriteFailures++;
+                    throw new DOMException('Mock quota failure', 'QuotaExceededError');
+                }
+                return window.__demoOriginalSetItem.call(this, key, value);
+            };
+        }""")
+        main.get_by_role("button", name="Stop sharing", exact=True).click()
+        expect(main.get_by_role("button", name="Share a journey", exact=True)).to_be_visible()
+        self.page.wait_for_function("window.__demoWriteFailures > 0")
+        self.assertIsNotNone(self.demo_state(USER_ID)["sharing"], "Fixture must retain a stale active session on disk")
+        self.open_account().get_by_role("button", name="Sign out", exact=True).click()
+        expect(self.account().get_by_role("button", name="Sign in to Yeto", exact=True)).to_be_visible()
+        self.page.evaluate("() => { Storage.prototype.setItem = window.__demoOriginalSetItem; delete window.__demoOriginalSetItem; }")
+        self.submit_sign_in(self.account())
+        self.close_account()
+        expect(main.get_by_role("button", name="Stop sharing", exact=True)).to_have_count(0)
+        expect(main.get_by_role("button", name="Share a journey", exact=True)).to_be_visible()
+        self.page.wait_for_function("key => JSON.parse(localStorage.getItem(key)).sharing === null", arg=f"yeto-demo-v1:{USER_ID}")
+
+    def test_16_failed_owner_read_cannot_revive_sharing_on_later_login(self):
+        """An unreadable namespace is remembered as departed before it becomes readable."""
+        self.visit()
+        key = f"yeto-demo-v1:{USER_ID}"
+        self.page.evaluate("""key => {
+            const saved = JSON.parse(localStorage.getItem('yeto-demo-v1'));
+            saved.sharing = { audience: 'Close friends', durationMinutes: null, startedAt: Date.now(), destination: 'Stale sample journey' };
+            localStorage.setItem(key, JSON.stringify(saved));
+            window.__demoOriginalGetItem = Storage.prototype.getItem;
+            window.__demoBlockedReadKey = key;
+            window.__demoReadFailures = 0;
+            Storage.prototype.getItem = function(requestedKey) {
+                if (requestedKey === window.__demoBlockedReadKey) {
+                    window.__demoReadFailures++;
+                    throw new DOMException('Mock unavailable storage', 'SecurityError');
+                }
+                return window.__demoOriginalGetItem.call(this, requestedKey);
+            };
+        }""", key)
+        self.submit_sign_in(self.open_account())
+        self.close_account()
+        self.page.wait_for_function("window.__demoReadFailures > 0")
+        self.page.get_by_role("navigation", name="Main navigation", exact=True).get_by_role("button", name="Map", exact=True).click()
+        main = self.page.get_by_role("main")
+        expect(main.get_by_role("button", name="Stop sharing", exact=True)).to_have_count(0)
+        self.assertTrue(self.page.evaluate("key => JSON.parse(window.__demoOriginalGetItem.call(localStorage, key)).sharing !== null", key))
+        self.open_account().get_by_role("button", name="Sign out", exact=True).click()
+        expect(self.account().get_by_role("button", name="Sign in to Yeto", exact=True)).to_be_visible()
+        self.page.evaluate("() => { Storage.prototype.getItem = window.__demoOriginalGetItem; delete window.__demoOriginalGetItem; }")
+        self.submit_sign_in(self.account())
+        self.close_account()
+        expect(main.get_by_role("button", name="Stop sharing", exact=True)).to_have_count(0)
+        expect(main.get_by_role("button", name="Share a journey", exact=True)).to_be_visible()
+        self.page.wait_for_function("key => JSON.parse(localStorage.getItem(key)).sharing === null", arg=key)
+
+    def test_17_cross_tab_auth_change_clears_unsent_credentials(self):
+        """An external auth cycle cannot leave old email/password drafts in the panel."""
+        self.visit()
+        first_account = self.open_account()
+        first_account.get_by_label("Email address", exact=True).fill("private-draft@example.test")
+        first_account.get_by_label(re.compile(r"^Password")).fill("Never-submit-this-draft")
+        second = self.context.new_page()
+        second.set_default_timeout(9000)
+        second.on("pageerror", lambda error: self.errors.append(str(error)))
+        second.goto(ACCOUNT_URL)
+        expect(second.get_by_role("heading", name="Tara, Mika!", exact=True)).to_be_visible()
+        second.get_by_role("main").get_by_role("button", name="Set up your account", exact=True).click()
+        second_account = second.get_by_role("dialog", name="Your Yeto account", exact=True)
+        second_account.get_by_label("Email address", exact=True).fill(TEST_EMAIL)
+        second_account.get_by_label(re.compile(r"^Password")).fill(TEST_PASSWORD)
+        second_account.get_by_role("button", name="Sign in to Yeto", exact=True).click()
+        expect(second_account.get_by_label("Display name", exact=True)).to_have_value("Maria Test")
+        expect(first_account.get_by_label("Display name", exact=True)).to_have_value("Maria Test")
+        second_account.get_by_role("button", name="Sign out", exact=True).click()
+        expect(first_account.get_by_role("button", name="Sign in to Yeto", exact=True)).to_be_visible()
+        expect(first_account.get_by_label("Email address", exact=True)).to_have_value("")
+        expect(first_account.get_by_label(re.compile(r"^Password"))).to_have_value("")
+        password_calls = [call for call in self.service.matching("/auth/v1/token", "POST") if call["query"].get("grant_type") == ["password"]]
+        self.assertEqual(len(password_calls), 1)
+        self.assertEqual(password_calls[0]["body"]["email"], TEST_EMAIL)
+        self.assertNotIn("private-draft@example.test", json.dumps(self.service.calls))
+        self.assertNotIn("Never-submit-this-draft", json.dumps(self.service.calls))
+        second.close()
 
 
 if __name__ == "__main__":

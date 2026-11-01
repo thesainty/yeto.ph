@@ -34,10 +34,25 @@ function isPlan(v: unknown): v is Plan {
     typeof v.joined === "boolean"
   );
 }
-export function loadState(): AppState {
+export interface LoadedDemoState {
+  state: AppState;
+  storageUnavailable: boolean;
+}
+
+/** Read a single namespace without exposing another account's cached state. */
+export function loadStateWithStatus(
+  storageKey: string = STORAGE_KEY,
+): LoadedDemoState {
+  let raw: string | null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return structuredClone(initialState);
+    raw = localStorage.getItem(storageKey);
+  } catch {
+    return { state: structuredClone(initialState), storageUnavailable: true };
+  }
+  if (!raw) {
+    return { state: structuredClone(initialState), storageUnavailable: false };
+  }
+  try {
     const data: unknown = JSON.parse(raw);
     if (
       !isObject(data) ||
@@ -61,7 +76,10 @@ export function loadState(): AppState {
           isCircle(v.audience),
       )
     )
-      return structuredClone(initialState);
+      return {
+        state: structuredClone(initialState),
+        storageUnavailable: false,
+      };
     const state = data as unknown as AppState;
     if (
       state.sharing &&
@@ -70,8 +88,12 @@ export function loadState(): AppState {
         Date.now()
     )
       state.sharing = null;
-    return state;
+    return { state, storageUnavailable: false };
   } catch {
-    return structuredClone(initialState);
+    return { state: structuredClone(initialState), storageUnavailable: false };
   }
+}
+
+export function loadState(storageKey: string = STORAGE_KEY): AppState {
+  return loadStateWithStatus(storageKey).state;
 }

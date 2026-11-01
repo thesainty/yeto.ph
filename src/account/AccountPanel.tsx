@@ -21,6 +21,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { useAccount } from "./AccountProvider";
+import { useIdentity } from "./useIdentity";
 import ConnectionsPanel from "./ConnectionsPanel";
 import "./account.css";
 
@@ -174,6 +175,7 @@ function PasswordField({
 
 export default function AccountPanel() {
   const account = useAccount();
+  const identity = useIdentity();
   const id = useId();
   const [mode, setMode] = useState<Mode>("signin");
   const [name, setName] = useState("");
@@ -348,19 +350,13 @@ export default function AccountPanel() {
       <div className="account-panel">
         <div className="account-identity">
           <span className="account-identity-avatar" aria-hidden="true">
-            {(
-              account.profile?.display_name ??
-              account.session.user.email ??
-              "Y"
-            )
-              .slice(0, 1)
-              .toUpperCase()}
+            {identity.initials}
           </span>
           <div>
             <span className="account-connected">
               <span /> Account connected
             </span>
-            <h3>{account.profile?.display_name ?? "Your Yeto account"}</h3>
+            <h3>{identity.displayName}</h3>
             <p>{account.session.user.email}</p>
           </div>
         </div>
@@ -479,8 +475,8 @@ export default function AccountPanel() {
         <div className="account-real-note">
           <ShieldCheck size={18} />
           <p>
-            Your real account is separate from the sample feed. GPS sharing is
-            not enabled.
+            Your profile and friendships are connected. The feed, map, and
+            journeys still use sample data. GPS sharing is not enabled.
           </p>
         </div>
         <button

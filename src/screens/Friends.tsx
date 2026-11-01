@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Avatar, AvatarStack } from "../components/ui";
+import { useIdentity } from "../account/useIdentity";
 import { people } from "../data";
 import type { PersonId } from "../types";
 import "./friends.css";
@@ -38,6 +39,7 @@ export default function Friends({
   onRemoveFriend,
   onShare,
 }: FriendsProps) {
+  const identity = useIdentity();
   const [view, setView] = useState<"friends" | "circles">("friends");
   const [query, setQuery] = useState("");
   const [openMenu, setOpenMenu] = useState<PersonId | null>(null);
@@ -141,7 +143,7 @@ export default function Friends({
               <div className="friends-member" key={id}>
                 <Avatar id={id} size={38} />
                 <span>
-                  {people[id].name}
+                  {id === "mika" ? identity.firstName : people[id].name}
                   {id === "mika" ? " (you)" : ""}
                 </span>
                 <span className="friends-member-sharing">

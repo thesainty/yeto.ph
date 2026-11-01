@@ -31,7 +31,7 @@ The production output is in `dist/`. The app uses hash navigation, so every scre
 - Check-in posts, likes, and comments.
 - Select an audience and a timed or ongoing **demo** sharing session. Timers expire, survive refresh, and can be stopped immediately. Accepting a new friend or removing a friend stops your session, so a changed circle never silently changes your viewers.
 - Illustrated BGC map with selectable sample pins, circle filtering, and zoom controls.
-- Browser-local persistence, gracefully handling missing, malformed, or expired data. Reset the demo from Mika's profile.
+- Browser-local persistence, gracefully handling missing, malformed, or expired data. Signed-in accounts have separate sample-data caches; anonymous demo data stays separate. The anonymous demo can be reset from its sample profile.
 - Keyboard-operable controls, focus-trapped dialogs, Escape-to-close, and reduced-motion support.
 
 ## Account foundation
@@ -40,15 +40,15 @@ The optional account panel supports sign-up, sign-in, email confirmation, passwo
 
 Start with [the beginner connection guide](docs/CONNECT-SUPABASE.md). Copy `.env.example` to `.env.local` only when you have the public project configuration. Never place private/admin keys in browser variables. The SQL migration lives in `supabase/migrations/`, with database contracts in `supabase/README.md`.
 
-Account data is separate from the sample feed and journeys. No hosted Supabase project or real email delivery has been verified yet. Connections refresh manually.
+Signed-in names, usernames, initial avatars, and profile controls use the authenticated profile throughout the app. Anonymous preview mode keeps the Mika sample identity. Real profiles and friendships use Supabase, while feed/map/journey activity is still sample data. Initial hosted registration and email confirmation have been reported successful by the project owner; automated account browser tests still use intercepted fake responses. Connections refresh manually.
 
 Run `npm test` for PostgreSQL permission checks. The account browser suite is `python tests/accounts.py`, with separate configured/unconfigured servers and intercepted fake account responses; see that script for its settings. Existing sample-app browser checks remain in `tests/smoke.py`.
 
 ## Prototype boundaries
 
-The main feed, sample Mika profile, notifications, illustrated map positions, journeys, and demo requests are fictional sample data. The separate account panel uses the configured Supabase project when enabled. Changes live in this browser under `yeto-demo-v1`; no demo feed or journey data is sent to another person or server. The optional account panel sends authentication and connection requests only to the configured Supabase project when the user interacts with it. The app does not request device location permission. Friend activity labels and arrival posts are samples, not live observations.
+The main feed, notifications, illustrated map positions, journeys, and demo requests are fictional sample data. Mika is used only for anonymous preview mode; signed-in account identity comes from Supabase. Anonymous sample changes live under `yeto-demo-v1` and signed-in sample changes under `yeto-demo-v1:<user-id>`. Account changes discard unsent screen/form drafts and end the departed account’s demo sharing; previously saved sample content is kept in its own namespace; no demo feed or journey data is sent to another person or server. The optional account panel sends authentication and connection requests only to the configured Supabase project when the user interacts with it. The app does not request device location permission. Friend activity labels and arrival posts are samples, not live observations.
 
-This is a responsive web prototype, not a released iOS/Android app. Real accounts and friendship/blocking controls have a prepared backend foundation, pending hosted-project validation. Per-viewer location authorization, shared feed/plans, push notifications, GPS collection, routing/ETA, background location, moderation/reporting, account deletion, and server-side journey expiry still need implementation before real location sharing. In particular, an accepted friendship must never grant location access: backend sharing grants must be explicit, scoped to viewers, revocable, and expired server-side.
+This is a responsive web prototype, not a released iOS/Android app. Real account registration has been reported successful by the project owner; cross-user friendship and blocking workflows still need hosted end-to-end validation. Per-viewer location authorization, shared feed/plans, push notifications, GPS collection, routing/ETA, background location, moderation/reporting, account deletion, and server-side journey expiry still need implementation before real location sharing. In particular, an accepted friendship must never grant location access: backend sharing grants must be explicit, scoped to viewers, revocable, and expired server-side.
 
 For reliable ongoing sharing on phones, use a native-capable iOS/Android client and validate permissions, background restrictions, accuracy, connectivity loss, and battery behavior on real devices.
 
@@ -72,6 +72,7 @@ See `scripts/setup.sh` and `docs/environment-start.md` for installation and star
 
 - `src/App.tsx`: navigation, demo state, dialogs, and interactions.
 - `src/screens/`: the four screens and their styles.
-- `src/state.ts`: stored-data validation and expired-session handling.
+- `src/state.ts` and `src/useDemoState.ts`: validation, sharing expiry, and account-scoped sample storage.
+- `src/account/useIdentity.ts`: signed-in display names, usernames, and Unicode-safe initials.
 - `src/data.ts`: fictional profiles and initial plans.
 - `src/components/ui.tsx`: original avatars, wordmark, and accessible dialog.
