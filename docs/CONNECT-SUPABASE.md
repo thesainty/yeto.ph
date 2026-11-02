@@ -30,7 +30,7 @@ In the project's Authentication settings:
 
 - Enable email/password sign-in and keep email confirmation enabled.
 - Set the minimum password length to at least 10 characters. The app also checks this, but the server must enforce it.
-- Set the Site URL and allowed redirect URLs to the exact origin where you open the Yeto app. Use your real HTTPS deployment address for shared testing; add your development origin only when testing locally.
+- Set the Site URL and allowed redirect URLs to the exact origin where you open TARA. For the current deployment, set Site URL to `https://tara-together.vercel.app` and add `https://tara-together.vercel.app/` to Redirect URLs. Save these settings and verify confirmation/password-reset links opened from the new site. Keep the Supabase project/API URL and publishable key unchanged; add development origins only when testing locally.
 - Email confirmation and password recovery use the app's root URL as the callback. PKCE links should be opened in the same browser/device that requested them.
 - Check the project's email delivery settings. Built-in development email services can have recipient and rate limits. Configure an email provider before inviting people outside the permitted test recipients. Do not disable confirmation to hide delivery failures.
 

@@ -2,7 +2,7 @@
 
 **Your people. A little closer.**
 
-Start with 5–10 people you know for a suggested 2–3 days at [yeto-ph.vercel.app](https://yeto-ph.vercel.app/). The aim is to learn whether people can connect, share an update, and make a plan without help.
+Start with 5–10 people you know for a suggested 2–3 days at [tara-together.vercel.app](https://tara-together.vercel.app/). The aim is to learn whether people can connect, share an update, and make a plan without help.
 
 The project owner has reported successful two-account checks for friends, private and selected-friend posts, comments, plans, RSVPs, and access revocation. Those reports are separate from the automated browser tests, which use mocked responses. The pilot gathers feedback from more people and devices; it is not a public-release certification.
 
@@ -16,7 +16,7 @@ The website has a public URL and signup. This pilot limits whom you invite; the 
 
 > I’m trying a small pilot of TARA — Your people. A little closer.
 >
-> Would you try https://yeto-ph.vercel.app/ over the next couple of days? Sign in or create your own account, connect with someone you know, share a small update, and try a plan together. Open **Pilot guide** in the app for the steps.
+> Would you try https://tara-together.vercel.app/ over the next couple of days? Sign in or create your own account, connect with someone you know, share a small update, and try a plan together. Open **Pilot guide** in the app for the steps.
 >
 > Friends, posts, comments, and plans are real. The map and journey tools are demos; no GPS or real location sharing is enabled.
 >

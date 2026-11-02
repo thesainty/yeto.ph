@@ -12,4 +12,4 @@
 
 For future unconfigured UI tests on this machine, explicitly run the test server with `VITE_SUPABASE_URL= VITE_SUPABASE_PUBLISHABLE_KEY=` so the real local project settings are overridden. Mocked account tests must continue using their deliberately fake project and intercepted HTTP.
 
-- Current browser deployment reported by the user: https://yeto-ph.vercel.app/ . Site URL and the exact root Redirect URL were shown configured in Supabase. The initial registered-account screenshot exposed the shell’s hardcoded Mika identity; the identity fix binds that shell to the authenticated profile.
+- Current browser deployment reported working by the user: https://tara-together.vercel.app/ . The previous address was https://yeto-ph.vercel.app/ and had its Supabase Site URL and exact root Redirect URL configured. The new address needs Site URL `https://tara-together.vercel.app` and allowed Redirect URL `https://tara-together.vercel.app/`; dashboard configuration and email-link behavior at the new address are not yet confirmed. The app builds confirmation and recovery redirects from the current browser origin, so no auth code or Supabase API URL change is needed.
