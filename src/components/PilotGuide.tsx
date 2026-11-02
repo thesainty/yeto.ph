@@ -45,6 +45,7 @@ export default function PilotGuide({
             <li>In Home, publish an update with no friends selected. It stays private. Then publish another update with your friend selected; ask them to like or comment.</li>
             <li>In Plans, create a meetup and select your friend to invite. Ask them to join and check that their RSVP appears.</li>
           </ol>
+          <p>Every new post and plan starts with Only me. Search friends, choose All current friends, or use a private saved circle. A circle copies its current members into your selection. New friends and later circle changes never expand older audiences.</p>
           <p>Use Refresh or return to the page to check for changes. Visible lists also update about every 30 seconds. Creating a plan does not create a feed post.</p>
         </section>
         <div className="pilot-boundary">

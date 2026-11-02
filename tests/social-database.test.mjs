@@ -71,6 +71,7 @@ before(async () => {
     alter default privileges grant execute on functions to anon, authenticated, service_role;
   `);
   await db.exec(await readFile(new URL("../supabase/migrations/202611010001_social_feed_and_plans.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/202611020002_saved_audience_circles.sql", import.meta.url), "utf8"));
 });
 beforeEach(async () => {
   await db.exec("truncate public.profiles,public.friendships,public.blocks cascade");
@@ -110,8 +111,8 @@ test("RPC audience validation rejects strangers, own ID, blocked IDs, null IDs a
   await assert.rejects(post(A, [D]), /current, unblocked friends/);
   await assert.rejects(plan(A, [D]), /current, unblocked friends/);
   await assert.rejects(post(A, [A]), /current, unblocked friends/);
-  await assert.rejects(post(A, [B, null]), /up to 50/);
-  await assert.rejects(post(A, Array(51).fill(B)), /up to 50/);
+  await assert.rejects(post(A, [B, null]), /up to 500/);
+  await assert.rejects(post(A, Array(501).fill(B)), /up to 500/);
   await db.query("insert into public.blocks values($1,$2)", [B, A]);
   await assert.rejects(post(A, [B]), /current, unblocked friends/);
   assert.deepEqual(await snap(A), { posts: [], plans: [] });

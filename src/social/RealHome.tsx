@@ -6,6 +6,7 @@ import { useSocial } from "./SocialProvider";
 import { addComment, createPost, deleteComment, deletePost, setLike } from "./api";
 import type { SocialPost } from "./types";
 import RecipientPicker from "./RecipientPicker";
+import { MAX_RECIPIENTS } from "./circles";
 import { PersonAvatar, SocialStatus, socialDate } from "./SocialUi";
 import "./social.css";
 
@@ -130,12 +131,17 @@ export default function RealHome() {
     setMessage("");
     setFormError("");
     const knownFriends = new Set(connections.data?.friends.map((person) => person.id));
-    if (viewers.some((id) => !knownFriends.has(id)) || (viewers.length && connections.error)) {
+    if (viewers.length > MAX_RECIPIENTS) {
+      setFormError(`Choose up to ${MAX_RECIPIENTS} friends for this update.`);
+      return;
+    }
+    if (viewers.some((id) => !knownFriends.has(id)) || (viewers.length && (connections.error || connections.refreshing))) {
       setFormError("Your selected friends have changed. Refresh your friends list and choose again.");
       return;
     }
     try {
-      await run(() => createPost(body.trim(), viewers));
+      const recipients = [...viewers];
+      await run(() => createPost(body.trim(), recipients));
       setBody("");
       setViewers([]);
       setMessage("Your update was saved.");

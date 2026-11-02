@@ -33,7 +33,7 @@ class PilotBrowserTests(unittest.TestCase):
     def assert_no_content_writes(self):
         writes = [call for call in self.service.calls
                   if call["path"].startswith("/rest/v1/rpc/")
-                  and call["path"] != "/rest/v1/rpc/social_snapshot"]
+                  and call["path"] not in ["/rest/v1/rpc/social_snapshot", "/rest/v1/rpc/audience_circles_snapshot"]]
         self.assertEqual(writes, [], "Reading/copying the guide must not mutate content or connections")
 
     def test_01_anonymous_guide_copy_and_escape_preserve_demo(self):

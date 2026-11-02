@@ -66,6 +66,14 @@ class MockAccountService:
         self.blocks = []
         self.recovery_redirect = None
         self.social_posts = []
+        self.circles_by_user = {}
+        self.circle_serial = 0
+        self.circles_error = None
+        self.circles_network_failure = False
+        self.circle_mutation_error = False
+        self.hold_circles_snapshot = False
+        self.held_circles_snapshots = []
+        self.row_limit = None
 
     def switch_user(self, user_id, display_name, username, email):
         """Select a second fictional account after sign-out, with isolated records."""
@@ -100,6 +108,9 @@ class MockAccountService:
     def matching(self, path, method=None):
         return [call for call in self.calls if call["path"] == path and (method is None or call["method"] == method)]
 
+    def current_circles(self):
+        return self.circles_by_user.setdefault(self.user_id, [])
+
     def handle(self, route):
         request = route.request
         url = urlparse(request.url)
@@ -110,13 +121,26 @@ class MockAccountService:
             body = None
         call = {"path": url.path, "query": query, "method": request.method, "body": body}
         self.calls.append(call)
-        headers = {"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS", "content-type": "application/json", "x-supabase-api-version": "2024-01-01", "access-control-expose-headers": "X-Supabase-Api-Version"}
+        headers = {"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS", "content-type": "application/json", "x-supabase-api-version": "2024-01-01", "access-control-expose-headers": "X-Supabase-Api-Version,Content-Range"}
 
         def respond(value=None, status=200):
             route.fulfill(status=status, headers=headers, body=json.dumps(value) if value is not None else "")
 
         def fail(code, message, status=400):
             respond({"code": code, "message": message, "msg": message}, status)
+
+        def page_rows(rows):
+            # Mirror PostgREST ranges so large-list tests exercise every page.
+            start = int(query.get("offset", [0])[0])
+            limit = int(query.get("limit", [len(rows)])[0])
+            if request.headers.get("range"):
+                start, end = map(int, request.headers["range"].split("-"))
+                limit = end - start + 1
+            if self.row_limit is not None:
+                limit = min(limit, self.row_limit)
+            result = rows[start:start + limit]
+            headers["content-range"] = f"{start}-{start + len(result) - 1}/{len(rows)}" if result else f"*/{len(rows)}"
+            return result
 
         if request.method == "OPTIONS":
             respond({}, 200)
@@ -152,7 +176,7 @@ class MockAccountService:
             identity = query.get("id", [""])[0]
             if identity.startswith("in.("):
                 selected_ids = identity.removeprefix("in.(").removesuffix(")").split(",")
-                respond([self.other_profiles[id] for id in selected_ids if id in self.other_profiles])
+                respond(page_rows([self.other_profiles[id] for id in selected_ids if id in self.other_profiles]))
             else:
                 respond(self.profile)
             return
@@ -160,11 +184,11 @@ class MockAccountService:
             if self.connection_error:
                 fail("42P01", "relation friendships does not exist", 404)
             elif url.path.endswith("friendships"):
-                respond(self.friendships)
+                respond(page_rows(self.friendships))
             elif url.path.endswith("friend_requests"):
-                respond(self.requests)
+                respond(page_rows(self.requests))
             else:
-                respond(self.blocks)
+                respond(page_rows(self.blocks))
             return
         if url.path.startswith("/rest/v1/rpc/"):
             name = url.path.split("/")[-1]
@@ -173,8 +197,41 @@ class MockAccountService:
                 # multi-user behavior are exercised by tests/social.py.
                 respond({"posts": self.social_posts, "plans": []})
                 return
+            if name == "audience_circles_snapshot":
+                if self.circles_network_failure:
+                    route.abort("connectionfailed")
+                elif self.circles_error:
+                    fail(self.circles_error, "Circles unavailable", 404)
+                elif self.hold_circles_snapshot:
+                    self.held_circles_snapshots.append((route, json.loads(json.dumps(self.current_circles()))))
+                    self.hold_circles_snapshot = False
+                else:
+                    respond(self.current_circles())
+                return
             if self.mutation_error:
                 fail("42501", "permission denied", 403)
+                return
+            if name in ["save_audience_circle", "delete_audience_circle"]:
+                if self.circle_mutation_error:
+                    fail("42501", "Circle change denied", 403)
+                    return
+                circles = self.current_circles()
+                circle_id = body["circle_id"]
+                existing = next((circle for circle in circles if circle["id"] == circle_id), None)
+                if name == "delete_audience_circle":
+                    self.circles_by_user[self.user_id] = [circle for circle in circles if circle["id"] != circle_id]
+                    respond(None)
+                    return
+                if circle_id is None:
+                    self.circle_serial += 1
+                    circle_id = f"aaaaaaaa-aaaa-4aaa-8aaa-{self.circle_serial:012d}"
+                    existing = {"id": circle_id}
+                    circles.append(existing)
+                elif existing is None:
+                    fail("42501", "Circle unavailable", 403)
+                    return
+                existing.update({"name": body["circle_name"].strip(), "member_ids": list(body["member_ids"])})
+                respond(circle_id)
                 return
             if name == "search_people":
                 respond([self.other_profiles[TARGET_ID]])
@@ -191,6 +248,12 @@ class MockAccountService:
             elif name in ["remove_friend", "block_person"]:
                 target_id = body["target_id"]
                 self.friendships = [f for f in self.friendships if target_id not in [f["user_a"], f["user_b"]]]
+                for owner, circles in self.circles_by_user.items():
+                    for circle in circles:
+                        if owner == self.user_id:
+                            circle["member_ids"] = [member for member in circle["member_ids"] if member != target_id]
+                        elif owner == target_id:
+                            circle["member_ids"] = [member for member in circle["member_ids"] if member != self.user_id]
                 if name == "block_person":
                     self.requests = [r for r in self.requests if target_id not in [r["requester_id"], r["recipient_id"]]]
                     self.blocks.append({"blocked_id": target_id, "created_at": NOW})

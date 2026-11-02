@@ -26,7 +26,7 @@ export function socialError(cause: unknown): SocialError {
   }
   if (["22023", "23514", "23503", "23505"].includes(code)) {
     return new SocialError(
-      "Check the details, choose a future time for plans, and select only current friends.",
+      "Check the details, choose a future time for plans, and select up to 500 current friends. If a larger audience isn’t available yet, try fewer friends or ask your host to enable the update.",
     );
   }
   if (["PGRST301", "PGRST302", "invalid_jwt"].includes(code)) {

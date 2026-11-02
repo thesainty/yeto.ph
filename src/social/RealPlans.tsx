@@ -14,6 +14,8 @@ import { createPlan, deletePlan, setAttendance } from "./api";
 import { useSocial } from "./SocialProvider";
 import { PersonAvatar, SocialStatus } from "./SocialUi";
 import RecipientPicker from "./RecipientPicker";
+import { useConnections } from "../account/ConnectionsProvider";
+import { MAX_RECIPIENTS } from "./circles";
 import type { SocialPlan } from "./types";
 import "./social.css";
 
@@ -40,6 +42,7 @@ function readableError(cause: unknown) {
 
 export default function RealPlans() {
   const { userId, data, refreshing, error, setupRequired, refresh, run, busy } = useSocial();
+  const connections = useConnections();
   const [creating, setCreating] = useState(false);
   const [filter, setFilter] = useState<"all" | "mine">("all");
   const [title, setTitle] = useState("");
@@ -84,14 +87,24 @@ export default function RealPlans() {
       setLocalError("Add a title, meeting place, and a future date and time in the Philippines.");
       return;
     }
+    if (invitees.length > MAX_RECIPIENTS) {
+      setLocalError(`Choose up to ${MAX_RECIPIENTS} friends for this plan.`);
+      return;
+    }
+    const knownFriends = new Set(connections.data?.friends.map((person) => person.id));
+    if (invitees.some((id) => !knownFriends.has(id)) || (invitees.length && (connections.error || connections.refreshing))) {
+      setLocalError("Your selected friends have changed. Refresh your friends list and choose again.");
+      return;
+    }
     const current = generation.current;
+    const recipients = [...invitees];
     try {
       await run(() => createPlan({
         title: title.trim(),
         place: place.trim(),
         starts_at: startsAt.toISOString(),
         kind,
-        invitee_ids: invitees,
+        invitee_ids: recipients,
       }));
       if (current !== generation.current) return;
       setTitle("");

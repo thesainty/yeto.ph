@@ -8,9 +8,11 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc -b",
-    "test": "node tests/config.test.mjs && node tests/database.test.mjs",
+    "test": "node tests/config.test.mjs && node tests/database.test.mjs && node tests/social-database.test.mjs && node tests/circles-database.test.mjs",
     "test:database": "node tests/database.test.mjs",
-    "test:config": "node tests/config.test.mjs"
+    "test:config": "node tests/config.test.mjs",
+    "test:social": "node tests/social-database.test.mjs",
+    "test:circles": "node tests/circles-database.test.mjs"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.3.0",
