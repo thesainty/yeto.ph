@@ -44,6 +44,8 @@ Signed-in names, usernames, initial avatars, and profile controls use the authen
 
 Run `npm test` for PostgreSQL permission checks. The account browser suite is `python tests/accounts.py`, with separate configured/unconfigured servers and intercepted fake account responses; see that script for its settings. Existing sample-app browser checks remain in `tests/smoke.py`.
 
+New signup usernames can use playful defaults such as `bouncy_taho_4821` after the separate [username-default upgrade](docs/USERNAME-DEFAULTS.md) is applied. Existing usernames are preserved. **Suggest a fun username** in the account profile fills an unsaved suggestion; **Save profile** adopts it if available. No existing setup needs to be rerun.
+
 ## Real feed and plans
 
 Signed-in Home uses real text updates, likes, and comments. Each update starts private (**Only me**); select specific accepted friends to share it. Authors can delete their updates, and commenters can delete their own comments. Signed-in Plans supports private meetups, selected-friend invitations, attendee names, join/leave, and organizer cancellation. Creating a plan does not automatically publish a feed post. Audiences and invitations are selected at creation; delete/recreate to change them.

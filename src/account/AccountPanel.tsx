@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useAccount } from "./AccountProvider";
 import { useIdentity } from "./useIdentity";
+import { suggestFunUsername } from "./usernames";
 import ConnectionsPanel from "./ConnectionsPanel";
 import "./account.css";
 
@@ -421,6 +422,18 @@ export default function AccountPanel() {
                   find you by username.
                 </small>
               </label>
+              <button
+                className="button button-soft"
+                type="button"
+                onClick={() => {
+                  setUsername(suggestFunUsername(username));
+                  setError("");
+                  setMessage("Suggestion ready. Save profile to use it.");
+                }}
+                disabled={busy}
+              >
+                <Sparkles size={16} /> Suggest a fun username
+              </button>
               <button
                 className="button button-primary button-full"
                 type="submit"
