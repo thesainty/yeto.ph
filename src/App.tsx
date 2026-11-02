@@ -20,6 +20,7 @@ import {
   Info,
   LockKeyhole,
   MapPin,
+  Moon,
   Navigation,
   Plus,
   Search,
@@ -47,6 +48,7 @@ import { initialState, people } from "./data";
 import { useDemoState } from "./useDemoState";
 import { useIdentity } from "./account/useIdentity";
 import type { Circle, PersonId, Plan, Tab } from "./types";
+import { useTheme } from "./theme/useTheme";
 
 const AccountPanel = lazy(() => import("./account/AccountPanel"));
 
@@ -101,6 +103,7 @@ function formatDuration(minutes: number | null) {
 }
 
 export default function App() {
+  const { theme, toggleTheme } = useTheme();
   const account = useAccount();
   const connections = useConnections();
   const social = useSocial();
@@ -485,6 +488,17 @@ export default function App() {
                   ? tab === "map" ? "Sample map" : tab === "friends" ? "Real connections" : "Real activity"
                   : "Interactive demo"}
               </span>
+              <button
+                type="button"
+                className="icon-button theme-toggle"
+                role="switch"
+                aria-label="Dark mode"
+                aria-checked={theme === "dark"}
+                title={theme === "dark" ? "Turn dark mode off" : "Turn dark mode on"}
+                onClick={toggleTheme}
+              >
+                {theme === "dark" ? <Sun size={19} aria-hidden="true" /> : <Moon size={19} aria-hidden="true" />}
+              </button>
               <button
                 className="icon-button notification-button"
                 onClick={() => { setModal("notifications"); if (account.session) void inbox.refresh(); }}

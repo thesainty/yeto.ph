@@ -1,9 +1,17 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fffaf2" />
+    <script>
+      try {
+        const theme = localStorage.getItem("tara-theme-v1") === "dark" ? "dark" : "light";
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+        if (theme === "dark") document.querySelector('meta[name="theme-color"]').setAttribute("content", "#151922");
+      } catch { /* Light mode remains available when browser storage is blocked. */ }
+    </script>
     <meta
       name="description"
       content="TARA — Stay connected. A little closer."

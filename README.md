@@ -24,6 +24,7 @@ The production output is in `dist/`. The app uses hash navigation, so every scre
 
 ## Anonymous demo
 
+- Light/dark mode switch beside the bell, available throughout the app. Light is the default; your choice is remembered on this browser and synced between its tabs.
 - Responsive Home, Map, Plans, and Friends screens, including desktop and mobile navigation.
 - Meetup join/leave, plan creation, and a personal plans filter.
 - Accept/decline Ana's sample friend request; search sample profiles and send a local request to Nico.

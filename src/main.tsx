@@ -7,6 +7,9 @@ import { SocialProvider } from "./social/SocialProvider";
 import { AudienceCirclesProvider } from "./social/AudienceCirclesProvider";
 import { ActivityInboxProvider } from "./activity/ActivityInboxProvider";
 import "./styles.css";
+import "./theme/theme.css";
+import "./theme/screens-dark.css";
+import "./theme/feature-dark.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

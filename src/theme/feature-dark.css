@@ -1,0 +1,325 @@
+/* Feature surfaces share the dark palette without altering illustrations or avatars. */
+:root[data-theme="dark"] :is(
+  .social-heading h2,
+  .social-heading h3,
+  .social-empty h3,
+  .social-person strong,
+  .social-comment-copy,
+  .social-field,
+  .social-recipient-picker legend,
+  .recipient-summary strong,
+  .recipient-circles-heading > strong,
+  .recipient-circle-editor > strong,
+  .recipient-circle-confirm > strong,
+  .account-setup h3,
+  .account-setup-steps strong,
+  .account-form-heading h3,
+  .account-identity h3,
+  .connections-heading h3,
+  .connections-person-copy > strong,
+  .connections-search > label,
+  .connections-empty strong,
+  .activity-state > strong,
+  .pilot-guide h3,
+  .pilot-guide label
+) {
+  color: var(--theme-text);
+}
+
+:root[data-theme="dark"] :is(
+  .social-heading p,
+  .social-empty p,
+  .social-muted,
+  .social-person small,
+  .social-comment-copy small,
+  .social-meta,
+  .social-you,
+  .social-plan-attendees > strong,
+  .social-recipient-option small,
+  .social-sharing-note,
+  .social-confirm p,
+  .recipient-use-circle > small,
+  .recipient-circle-status p,
+  .account-setup-intro,
+  .account-setup-steps p,
+  .account-loading p,
+  .account-form-heading p,
+  .account-field-hint,
+  .account-real-note p,
+  .account-identity p,
+  .account-session-footnote,
+  .connections-intro,
+  .connections-search > span,
+  .connections-small-heading > strong,
+  .connections-person-copy > small,
+  .connections-empty p,
+  .connections-no-results,
+  .activity-item small,
+  .activity-read-state,
+  .activity-note,
+  .activity-state > p
+) {
+  color: var(--theme-muted);
+}
+
+:root[data-theme="dark"] :is(
+  .social-card,
+  .social-form,
+  .social-post,
+  .social-plan-card,
+  .activity-item,
+  .activity-state
+) {
+  color: var(--theme-text);
+  background: var(--theme-surface);
+  border-color: var(--theme-border);
+}
+
+:root[data-theme="dark"] :is(
+  .social-field input,
+  .social-field textarea,
+  .social-field select,
+  .social-comment-form input,
+  .recipient-circle-name,
+  .account-password-input,
+  .account-username-input,
+  .connections-search-field,
+  .pilot-guide textarea
+) {
+  color: var(--theme-text);
+  background: var(--theme-input);
+  border-color: var(--theme-border);
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] :is(
+  .account-password-input > input,
+  .account-username-input > input,
+  .connections-search-field input
+) {
+  color: var(--theme-text);
+  background: transparent;
+}
+
+:root[data-theme="dark"] :is(
+  .social-field input,
+  .social-field textarea,
+  .social-comment-form input,
+  .recipient-circle-name,
+  .account-password-input > input,
+  .account-username-input > input,
+  .connections-search-field input
+)::placeholder {
+  color: var(--theme-subtle);
+  opacity: 1;
+}
+
+:root[data-theme="dark"] :is(
+  .social-post-actions,
+  .social-comments,
+  .social-plan-attendees,
+  .social-plan-card > .social-actions,
+  .recipient-circles,
+  .account-real-note,
+  .account-connections-divider,
+  .connections-panel,
+  .connections-person
+) {
+  border-color: var(--theme-border);
+}
+
+:root[data-theme="dark"] .social-post-body {
+  color: var(--theme-text);
+}
+:root[data-theme="dark"] :is(.social-reaction, .social-delete) {
+  color: var(--theme-muted);
+}
+:root[data-theme="dark"] .social-liked {
+  color: #ff9cad;
+  background: #3e2932;
+}
+:root[data-theme="dark"] .social-recipient-picker {
+  background: var(--theme-input);
+  border-color: var(--theme-border);
+}
+:root[data-theme="dark"] .social-recipient-option input {
+  accent-color: var(--theme-accent);
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] :is(
+  .recipient-circle-editor,
+  .recipient-circle-confirm,
+  .recipient-use-circle.button,
+  .connections-search-results,
+  .activity-target-status
+) {
+  background: var(--theme-soft);
+  border-color: #564663;
+  color: var(--theme-text);
+}
+:root[data-theme="dark"] :is(
+  .recipient-manage-circle,
+  .recipient-name-suggestions button,
+  .recipient-use-circle > span,
+  .account-forgot,
+  .account-back,
+  .account-setup-steps code,
+  .activity-mark-read,
+  .activity-count
+) {
+  color: #d4b9ed;
+}
+:root[data-theme="dark"] :is(.account-forgot:hover, .account-back:hover) {
+  color: #ead7fb;
+}
+:root[data-theme="dark"] .recipient-shortcuts .button[aria-pressed="true"] {
+  color: #e1c9f5;
+  background: #443451;
+  box-shadow: inset 0 0 0 1px #80628f;
+}
+
+:root[data-theme="dark"] :is(
+  .audience-review,
+  .social-privacy,
+  .connections-privacy,
+  .pilot-boundary
+) {
+  color: #bed7ad;
+  background: #23342c;
+  border-color: #405a47;
+}
+:root[data-theme="dark"] :is(.audience-review-heading, .audience-review-details, .connections-privacy strong, .pilot-boundary > svg) {
+  color: #c7ddb9;
+}
+:root[data-theme="dark"] :is(.audience-review p, .audience-review-details li small, .connections-privacy p) {
+  color: #bac9b6;
+}
+:root[data-theme="dark"] .audience-review-details ul {
+  border-color: #405a47;
+}
+
+:root[data-theme="dark"] :is(
+  .social-error,
+  .social-inline-error,
+  .account-feedback-error,
+  .connections-error,
+  .connections-confirm,
+  .activity-error,
+  .activity-action-error
+) {
+  color: #f1afa3;
+  background: #3a2628;
+  border-color: #674046;
+}
+:root[data-theme="dark"] :is(
+  .connections-confirm strong,
+  .connections-confirm p,
+  .audience-review .audience-review-warning,
+  .audience-review-unavailable
+) {
+  color: #f1afa3;
+}
+:root[data-theme="dark"] .connections-confirm-symbol {
+  color: #ffc0a6;
+  background: #543334;
+}
+:root[data-theme="dark"] :is(.social-message, .account-feedback-success, .connections-message, .social-plan-going) {
+  color: #c3ddb5;
+  background: #23392e;
+  border-color: #405a47;
+}
+
+:root[data-theme="dark"] :is(.social-plans-intro, .account-identity) {
+  color: var(--theme-text);
+  background: #353020;
+  border-color: #5b5035;
+}
+:root[data-theme="dark"] :is(.account-connected, .account-state-badge, .connections-kicker) {
+  color: #e5c878;
+}
+:root[data-theme="dark"] .account-state-badge {
+  background: #3b3222;
+}
+:root[data-theme="dark"] :is(.account-loading, .account-loading strong, .account-profile-loading, .connections-empty, .social-empty) {
+  color: #c8abd9;
+}
+:root[data-theme="dark"] .account-expo-note {
+  color: #d4b9ed;
+  background: var(--theme-soft);
+}
+:root[data-theme="dark"] .account-expo-note p {
+  color: #c6b5d2;
+}
+:root[data-theme="dark"] :is(.account-setup-steps > li > span, .connections-blocked-avatar) {
+  color: #d4b9ed;
+  background: #3b3046;
+}
+:root[data-theme="dark"] :is(.account-password-input > .icon-button, .account-username-input > span, .connections-search-field) {
+  color: var(--theme-muted);
+}
+
+:root[data-theme="dark"] :is(.account-tabs, .connections-tabs) {
+  background: var(--theme-input);
+}
+:root[data-theme="dark"] :is(.account-tabs > button, .connections-tabs > button) {
+  color: var(--theme-muted);
+}
+:root[data-theme="dark"] :is(.account-tabs > button.account-tab-active, .connections-tabs > button.connections-tab-selected) {
+  color: var(--theme-text);
+  background: var(--theme-raised);
+  box-shadow: 0 2px 6px #0003;
+}
+:root[data-theme="dark"] :is(.connections-small-heading > span, .connections-tabs > button > span, .connections-icon-action) {
+  color: var(--theme-muted);
+  background: var(--theme-raised);
+}
+:root[data-theme="dark"] .connections-refresh {
+  color: #e5c878 !important;
+  background: #3b3222 !important;
+}
+:root[data-theme="dark"] .connections-tab-selected > span {
+  color: #e5c878 !important;
+  background: #463b25 !important;
+}
+:root[data-theme="dark"] .connections-state {
+  color: #c3d5ac;
+}
+:root[data-theme="dark"] .connections-text-action {
+  color: #d1b4ae;
+}
+:root[data-theme="dark"] .connections-text-action:hover {
+  color: #ffb5b3;
+}
+:root[data-theme="dark"] .connections-icon-action:hover {
+  color: #ffc1c0;
+  background: #4a3038;
+}
+
+:root[data-theme="dark"] .activity-unread {
+  background: #30283f;
+  border-color: #725981;
+}
+:root[data-theme="dark"] :is(.activity-unread .activity-read-state, .activity-icon) {
+  color: #d4b9ed;
+}
+:root[data-theme="dark"] .activity-icon {
+  background: #443451;
+}
+:root[data-theme="dark"] :is(.activity-icon-plan_invite, .activity-icon-plan_rsvp, .activity-empty-icon) {
+  color: #efd185;
+  background: #453b25;
+}
+:root[data-theme="dark"] .activity-icon-post_like {
+  color: #ffb2c5;
+  background: #4b2d3a;
+}
+:root[data-theme="dark"] .activity-item > svg {
+  color: #c7b3d1;
+}
+:root[data-theme="dark"] :is(.pilot-guide, .pilot-guide textarea) {
+  color: var(--theme-text);
+}
+:root[data-theme="dark"] .main-footer .pilot-guide-link {
+  color: var(--theme-muted);
+}
