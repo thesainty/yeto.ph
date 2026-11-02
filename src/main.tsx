@@ -5,6 +5,7 @@ import { AccountProvider } from "./account/AccountProvider";
 import { ConnectionsProvider } from "./account/ConnectionsProvider";
 import { SocialProvider } from "./social/SocialProvider";
 import { AudienceCirclesProvider } from "./social/AudienceCirclesProvider";
+import { ActivityInboxProvider } from "./activity/ActivityInboxProvider";
 import "./styles.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
@@ -13,7 +14,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <ConnectionsProvider>
         <AudienceCirclesProvider>
           <SocialProvider>
-            <App />
+            <ActivityInboxProvider>
+              <App />
+            </ActivityInboxProvider>
           </SocialProvider>
         </AudienceCirclesProvider>
       </ConnectionsProvider>

@@ -37,6 +37,9 @@ import { useConnections } from "./account/ConnectionsProvider";
 import { useSocial } from "./social/SocialProvider";
 import RealHome from "./social/RealHome";
 import RealPlans from "./social/RealPlans";
+import ActivityInbox from "./activity/ActivityInbox";
+import { useActivityInbox } from "./activity/ActivityInboxProvider";
+import type { ActivityItem } from "./activity/api";
 import Friends from "./screens/Friends";
 import Plans from "./screens/Plans";
 import MapScreen, { MiniMap } from "./screens/Map";
@@ -101,6 +104,7 @@ export default function App() {
   const account = useAccount();
   const connections = useConnections();
   const social = useSocial();
+  const inbox = useActivityInbox();
   const identity = useIdentity();
   const ownerId = account.session?.user.id ?? null;
   const activityOwner = account.loading ? "restoring" : (ownerId ?? "demo");
@@ -114,6 +118,7 @@ export default function App() {
       ? (connections.error ? 0 : connections.data?.incoming.length ?? 0)
       : state.requestStatus === "pending" ? 1 : 0;
   const [tab, setTab] = useState<Tab>(readTab);
+  const [friendActivity, setFriendActivity] = useState<{ requestId: string | null; token: number } | null>(null);
   const [modal, setModal] = useState<
     | "share"
     | "plan"
@@ -127,6 +132,9 @@ export default function App() {
   >(null);
   const [toast, setToast] = useState("");
   const mainRef = useRef<HTMLElement>(null);
+  const focusedActivity = useRef<string | null>(null);
+  const unreadActivity = account.loading ? 0 : account.session
+    ? (inbox.data?.unread_count ?? (inbox.setupRequired ? pendingRequests : 0)) : pendingRequests;
   const [audience, setAudience] = useState<Circle>("Close friends");
   const [duration, setDuration] = useState<number | null>(60);
   const [destination, setDestination] = useState("");
@@ -152,6 +160,7 @@ export default function App() {
   useLayoutEffect(() => {
     // Account changes also discard unsent local form drafts before paint.
     setToast("");
+    setFriendActivity(null);
     setAudience("Close friends");
     setDuration(60);
     setDestination("");
@@ -177,14 +186,25 @@ export default function App() {
   }, [account.session, modal]);
 
   useEffect(() => {
-    const handle = () => setTab(readTab());
+    const handle = () => { social.clearActivityTarget(); focusedActivity.current = null; setTab(readTab()); };
     window.addEventListener("popstate", handle);
     window.addEventListener("hashchange", handle);
     return () => {
       window.removeEventListener("popstate", handle);
       window.removeEventListener("hashchange", handle);
     };
-  }, []);
+  }, [social.clearActivityTarget]);
+  useEffect(() => {
+    const target = social.activityTarget;
+    if (!target || target.loading || target.error) return;
+    const id = target.postId ? `activity-post-${target.postId}` : `activity-plan-${target.planId}`;
+    if (focusedActivity.current === id) return;
+    const element = document.getElementById(id);
+    if (!element) return;
+    focusedActivity.current = id;
+    element.scrollIntoView({ block: "center", behavior: "instant" });
+    element.focus({ preventScroll: true });
+  }, [social.activityTarget, social.data, tab]);
   useEffect(() => {
     document.title = `TARA — ${nav.find((item) => item.id === tab)?.label} | Stay connected. A little closer.`;
   }, [tab]);
@@ -211,6 +231,9 @@ export default function App() {
   }, [state.sharing]);
 
   function navigate(next: Tab) {
+    social.clearActivityTarget();
+    focusedActivity.current = null;
+    setFriendActivity(null);
     if (next !== tab) {
       setTab(next);
       window.history.pushState({}, "", `#${next}`);
@@ -220,6 +243,12 @@ export default function App() {
         0,
       );
     }
+  }
+  function openActivity(item: ActivityItem) {
+    setModal(null);
+    navigate(item.plan_id ? "plans" : item.post_id ? "home" : "friends");
+    if (item.kind === "friend_request") setFriendActivity({ requestId: item.request_id, token: performance.now() });
+    if (item.post_id || item.plan_id) void social.openActivityTarget(item.post_id, item.plan_id);
   }
   function notify(message: string) {
     setToast(message);
@@ -458,11 +487,13 @@ export default function App() {
               </span>
               <button
                 className="icon-button notification-button"
-                onClick={() => setModal("notifications")}
+                onClick={() => { setModal("notifications"); if (account.session) void inbox.refresh(); }}
                 aria-label="Open notifications"
+                aria-describedby="activity-unread-count"
               >
                 <Bell size={21} />
-                {pendingRequests > 0 && <i />}
+                {unreadActivity > 0 && (account.session ? <span className="activity-badge" aria-hidden="true">{unreadActivity > 99 ? "99+" : unreadActivity}</span> : <i />)}
+                <span id="activity-unread-count" className="sr-only">{unreadActivity} unread activities</span>
               </button>
               <button
                 className="topbar-profile"
@@ -536,7 +567,14 @@ export default function App() {
                 <div className="card account-loading" role="status">Loading your account…</div>
               )}
               {tab === "home" && !account.loading && account.session && (
-                <RealHome key={ownerId} />
+                <>
+                  {social.activityTarget?.postId && <div className="activity-target-status">
+                    {social.activityTarget.loading ? <p role="status">Opening your update…</p> : social.activityTarget.error ? <p role="alert">{social.activityTarget.error}</p> : <p>Update opened from your inbox.</p>}
+                    {social.activityTarget.error && <button type="button" className="button button-soft" onClick={() => void social.openActivityTarget(social.activityTarget!.postId, null)}>Try opening again</button>}
+                    <button type="button" className="button button-soft" onClick={social.clearActivityTarget}>Close opened item</button>
+                  </div>}
+                  <RealHome key={ownerId} />
+                </>
               )}
               {tab === "home" && !account.loading && !account.session && (
                 <Home
@@ -580,7 +618,14 @@ export default function App() {
                 <div className="card account-loading" role="status">Loading your account…</div>
               )}
               {tab === "plans" && !account.loading && account.session && (
-                <RealPlans key={ownerId} />
+                <>
+                  {social.activityTarget?.planId && <div className="activity-target-status">
+                    {social.activityTarget.loading ? <p role="status">Opening your plan…</p> : social.activityTarget.error ? <p role="alert">{social.activityTarget.error}</p> : <p>Plan opened from your inbox.</p>}
+                    {social.activityTarget.error && <button type="button" className="button button-soft" onClick={() => void social.openActivityTarget(null, social.activityTarget!.planId)}>Try opening again</button>}
+                    <button type="button" className="button button-soft" onClick={social.clearActivityTarget}>Close opened item</button>
+                  </div>}
+                  <RealPlans key={ownerId} />
+                </>
               )}
               {tab === "plans" && !account.loading && !account.session && (
                 <Plans
@@ -592,7 +637,9 @@ export default function App() {
               )}
               {tab === "friends" && (
                 <Friends
-                  key={activityOwner}
+                  key={`${activityOwner}:${friendActivity?.token ?? "default"}`}
+                  openRequests={Boolean(friendActivity)}
+                  focusRequestId={friendActivity?.requestId}
                   friendIds={state.friendIds}
                   requestStatus={state.requestStatus}
                   onAccept={acceptRequest}
@@ -1106,46 +1153,16 @@ export default function App() {
         </Modal>
       )}
 
-      {modal === "notifications" && (
+      {modal === "notifications" && account.session && (
+        <ActivityInbox onClose={() => setModal(null)} onOpen={openActivity} onFriends={() => { setModal(null); navigate("friends"); setFriendActivity({ requestId: null, token: performance.now() }); }} />
+      )}
+      {modal === "notifications" && !account.session && (
         <Modal
           title="A little heads-up."
           subtitle="Good things from your little world."
           onClose={() => setModal(null)}
         >
           <div className="notifications-list">
-            {account.session ? (
-              <>
-                <p className="form-helper">
-                  Real friend requests. Refresh Friends to check for new activity.
-                </p>
-                {connections.error ? (
-                  <p role="alert">{connections.error}</p>
-                ) : !connections.data ? (
-                  <p role="status">Loading your connections…</p>
-                ) : connections.data.incoming.length ? (
-                  connections.data.incoming.map((request) => (
-                    <button
-                      key={request.id}
-                      onClick={() => {
-                        setModal(null);
-                        navigate("friends");
-                      }}
-                    >
-                      <span className="notification-icon">
-                        <Users size={22} />
-                      </span>
-                      <span>
-                        <strong>{request.person.display_name || "A TARA member"} wants to connect</strong>
-                        <small>@{request.person.username} · View your requests in Friends</small>
-                      </span>
-                      <ChevronRight size={18} />
-                    </button>
-                  ))
-                ) : (
-                  <p className="form-helper">No incoming friend requests right now.</p>
-                )}
-              </>
-            ) : (
               <>
                 {state.requestStatus === "pending" && (
                   <button
@@ -1178,13 +1195,10 @@ export default function App() {
                   <ChevronRight size={18} />
                 </button>
               </>
-            )}
             <div className="notifications-note">
               <ShieldCheck size={19} />
               <p>
-                {account.session
-                  ? "These are real friend requests. Feed updates and plan invitations appear in Home and Plans. No push alerts are enabled."
-                  : "Just the good stuff. These are sample notifications; no push alerts are enabled."}
+                Just the good stuff. These are sample notifications; no push alerts are enabled.
               </p>
             </div>
           </div>

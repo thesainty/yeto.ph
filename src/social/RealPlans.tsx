@@ -14,6 +14,7 @@ import { createPlan, deletePlan, setAttendance } from "./api";
 import { useSocial } from "./SocialProvider";
 import { PersonAvatar, SocialStatus } from "./SocialUi";
 import RecipientPicker from "./RecipientPicker";
+import AudienceReview from "./AudienceReview";
 import { useConnections } from "../account/ConnectionsProvider";
 import { MAX_RECIPIENTS } from "./circles";
 import type { SocialPlan } from "./types";
@@ -41,7 +42,7 @@ function readableError(cause: unknown) {
 }
 
 export default function RealPlans() {
-  const { userId, data, refreshing, error, setupRequired, refresh, run, busy } = useSocial();
+  const { userId, data, refreshing, error, setupRequired, refresh, run, busy, activityTarget } = useSocial();
   const connections = useConnections();
   const [creating, setCreating] = useState(false);
   const [filter, setFilter] = useState<"all" | "mine">("all");
@@ -55,6 +56,10 @@ export default function RealPlans() {
   const [localError, setLocalError] = useState("");
   const [cancelPlan, setCancelPlan] = useState<SocialPlan | null>(null);
   const generation = useRef(0);
+
+  useEffect(() => {
+    if (activityTarget?.planId) setFilter("all");
+  }, [activityTarget?.planId, activityTarget?.revision]);
 
   useEffect(() => {
     generation.current += 1;
@@ -207,6 +212,7 @@ export default function RealPlans() {
           </label>
           <RecipientPicker label="Invite friends" selected={invitees} onChange={setInvitees} disabled={disabled} />
           <p className="social-muted">No friends selected means a private plan for you. Invites never include new friends automatically.</p>
+          <AudienceReview selected={invitees} kind="plan" />
           <div className="social-actions">
             <button className="button button-primary" disabled={disabled || !title.trim() || !place.trim() || !date || !time}>
               {busy ? "Saving…" : "Save plan"}
@@ -233,7 +239,7 @@ export default function RealPlans() {
             const invited = plan.invitees.some((person) => person.id === userId);
             const going = plan.attendees.some((person) => person.id === userId);
             return (
-              <article className={`card social-card social-plan-card social-plan-${plan.kind}`} key={plan.id}>
+              <article className={`card social-card social-plan-card social-plan-${plan.kind}`} id={`activity-plan-${plan.id}`} tabIndex={-1} key={plan.id}>
                 <div className="social-heading">
                   <div>
                     <span className="eyebrow">{hosting ? "YOUR PLAN" : "YOU’RE INVITED"}</span>

@@ -59,7 +59,7 @@ function errorText(error: unknown) {
     : "We couldn’t complete that request. Please try again.";
 }
 
-export default function ConnectionsPanel() {
+export default function ConnectionsPanel({ initialView = "friends", focusRequestId = null }: { initialView?: View; focusRequestId?: string | null }) {
   const { session } = useAccount();
   const userId = session?.user.id;
   const { data, refreshing, error: fetchError, refresh } = useConnections();
@@ -67,7 +67,8 @@ export default function ConnectionsPanel() {
   const titleId = `${panelId}-title`;
   const searchId = `${panelId}-username`;
   const hintId = `${panelId}-hint`;
-  const [view, setView] = useState<View>("friends");
+  const [view, setView] = useState<View>(initialView);
+  const focusedRequest = useRef<string | null>(null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Profile[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -92,7 +93,8 @@ export default function ConnectionsPanel() {
     searchGeneration.current += 1;
     setResults(null);
     setQuery("");
-    setView("friends");
+    setView(initialView);
+    focusedRequest.current = null;
     setError("");
     setMessage("");
     setConfirmation(null);
@@ -102,7 +104,16 @@ export default function ConnectionsPanel() {
       generation.current += 1;
       searchGeneration.current += 1;
     };
-  }, [userId]);
+  }, [userId, initialView]);
+
+  useEffect(() => {
+    if (view !== "requests" || !focusRequestId || focusedRequest.current === focusRequestId) return;
+    const element = document.getElementById(`activity-request-${focusRequestId}`);
+    if (!element) return;
+    focusedRequest.current = focusRequestId;
+    element.scrollIntoView({ block: "center", behavior: "instant" });
+    element.focus({ preventScroll: true });
+  }, [view, data, focusRequestId]);
 
   useEffect(() => {
     if (!confirmation) return;
@@ -474,6 +485,8 @@ export default function ConnectionsPanel() {
                   <div
                     className="connections-person connections-request"
                     key={request.id}
+                    id={`activity-request-${request.id}`}
+                    tabIndex={-1}
                   >
                     <Initials person={request.person} />
                     <div className="connections-person-copy">

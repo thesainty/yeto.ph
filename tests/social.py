@@ -56,6 +56,9 @@ class MockSocialService(accounts.MockAccountService):
             "invitees": [self.profile.copy()],
             "attendees": [self.other_profiles[accounts.FRIEND_ID].copy()],
         }]
+        self.target_posts_by_user = {}
+        self.target_plans_by_user = {}
+        self.target_error = None
 
     @staticmethod
     def empty():
@@ -71,7 +74,7 @@ class MockSocialService(accounts.MockAccountService):
         social_names = {
             "social_snapshot", "create_social_post", "delete_social_post",
             "set_social_like", "add_social_comment", "delete_social_comment",
-            "create_social_plan", "delete_social_plan", "set_social_attendance",
+            "create_social_plan", "delete_social_plan", "set_social_attendance", "activity_target_snapshot",
         }
         if not url.path.startswith("/rest/v1/rpc/") or name not in social_names:
             return super().handle(route)
@@ -97,6 +100,15 @@ class MockSocialService(accounts.MockAccountService):
                 self.hold_snapshot = False
             else:
                 respond(self.current_social())
+            return
+        if name == "activity_target_snapshot":
+            if self.target_error:
+                fail(self.target_error, "Target unavailable")
+                return
+            posts = self.current_social()["posts"] + self.target_posts_by_user.get(self.user_id, [])
+            plans = self.current_social()["plans"] + self.target_plans_by_user.get(self.user_id, [])
+            respond({"posts": [p for p in posts if p["id"] == body.get("post_id")],
+                     "plans": [p for p in plans if p["id"] == body.get("plan_id")]})
             return
         if self.mutation_error:
             fail("42501", "permission denied")

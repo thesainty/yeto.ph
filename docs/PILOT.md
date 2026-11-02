@@ -33,6 +33,8 @@ Connection lists and social content refresh on focus and every 30 seconds while 
 
 The audience picker starts with **Only me** for each new post or plan. Search friends, tap **All current friends**, or create a private saved circle such as Pamilya or Barkada. A circle is a shortcut for selecting current recipients; its name and members stay private to you. Circle changes and new friendships never update older audiences. Saved circles and the 500-recipient limit need the separate [circle upgrade](SAVED-CIRCLES.md) before hosted testing.
 
+Check **Audience review** before publishing and expand its recipient names to confirm your selection. When the separate [inbox upgrade](ACTIVITY-INBOX.md) is enabled, the bell shows requests, invitations, RSVPs, comments, and reactions. Opening it leaves unread items unchanged until you open an item or choose **Mark visible as read**.
+
 ## Try together
 
 Use disposable content such as “Pilot hello” and “Pilot coffee” so you can remove it afterward.

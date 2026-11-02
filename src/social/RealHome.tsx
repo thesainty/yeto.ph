@@ -6,6 +6,7 @@ import { useSocial } from "./SocialProvider";
 import { addComment, createPost, deleteComment, deletePost, setLike } from "./api";
 import type { SocialPost } from "./types";
 import RecipientPicker from "./RecipientPicker";
+import AudienceReview from "./AudienceReview";
 import { MAX_RECIPIENTS } from "./circles";
 import { PersonAvatar, SocialStatus, socialDate } from "./SocialUi";
 import "./social.css";
@@ -33,7 +34,7 @@ function PostCard({ post }: { post: SocialPost }) {
   }
 
   return (
-    <article className="card social-post" aria-label={`Update by ${post.author.display_name}`}>
+    <article className="card social-post" id={`activity-post-${post.id}`} tabIndex={-1} aria-label={`Update by ${post.author.display_name}`}>
       <div className="social-person">
         <PersonAvatar person={post.author} />
         <div className="social-person-copy">
@@ -169,6 +170,7 @@ export default function RealHome() {
             </label>
             <RecipientPicker selected={viewers} onChange={setViewers} disabled={disabled} />
             {formError && <p className="social-inline-error" role="alert">{formError}</p>}
+            <AudienceReview selected={viewers} kind="post" />
             <div className="social-actions">
               <small className="social-muted">{body.length}/240 · A text update, never your GPS location.</small>
               <button className="button button-coral" type="submit" disabled={disabled || !body.trim() || (viewers.length > 0 && (connections.refreshing || !!connections.error))}>

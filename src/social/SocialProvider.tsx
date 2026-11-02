@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -12,6 +13,17 @@ import { useAccount } from "../account/AccountProvider";
 import { useConnections } from "../account/ConnectionsProvider";
 import { fetchSocial, socialError } from "./api";
 import type { SocialSnapshot } from "./types";
+import { activityError, fetchActivityTarget } from "../activity/api";
+
+interface ActivityTarget {
+  revision: number;
+  scope: string;
+  postId: string | null;
+  planId: string | null;
+  data: SocialSnapshot | null;
+  loading: boolean;
+  error: string;
+}
 
 interface SocialContextValue {
   userId: string | null;
@@ -22,6 +34,9 @@ interface SocialContextValue {
   busy: boolean;
   refresh: (afterMutation?: boolean) => Promise<void>;
   run: (action: () => Promise<unknown>) => Promise<void>;
+  activityTarget: ActivityTarget | null;
+  openActivityTarget: (postId: string | null, planId: string | null) => Promise<void>;
+  clearActivityTarget: () => void;
 }
 
 interface Snapshot {
@@ -56,6 +71,10 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const mutating = useRef<{ owner: string; token: symbol } | null>(null);
   const [busyOwner, setBusyOwner] = useState<string | null>(null);
   const lastRefreshFailed = useRef(false);
+  const targetRequest = useRef<{ postId: string | null; planId: string | null; token: symbol; revision: number } | null>(null);
+  const targetRevision = useRef(0);
+  const unavailableTargets = useRef({ posts: new Set<string>(), plans: new Set<string>() });
+  const [target, setTarget] = useState<ActivityTarget | null>(null);
   const [snapshot, setSnapshot] = useState<Snapshot>({
     scope,
     data: null,
@@ -74,6 +93,9 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     generation.current += 1;
     inFlight.current = null;
     lastRefreshFailed.current = false;
+    targetRequest.current = null;
+    unavailableTargets.current = { posts: new Set(), plans: new Set() };
+    setTarget(null);
     setSnapshot({
       scope,
       data: null,
@@ -86,6 +108,33 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       inFlight.current = null;
     };
   }, [scope, userId]);
+
+  const openActivityTarget = useCallback(async (postId: string | null, planId: string | null, revalidate = false): Promise<void> => {
+    if (!userId || activeScope.current !== scope) return;
+    const token = Symbol("open activity");
+    const revision = revalidate && targetRequest.current ? targetRequest.current.revision : ++targetRevision.current;
+    targetRequest.current = { postId, planId, token, revision };
+    const current = generation.current;
+    const matches = () => current === generation.current && activeScope.current === scope && targetRequest.current?.token === token;
+    setTarget({ revision, scope, postId, planId, data: null, loading: true, error: "" });
+    try {
+      const data = await fetchActivityTarget(postId, planId);
+      if (!matches()) return;
+      const available = postId ? data.posts.some((post) => post.id === postId) : data.plans.some((plan) => plan.id === planId);
+      const unavailableIds = postId ? unavailableTargets.current.posts : unavailableTargets.current.plans;
+      const id = postId ?? planId;
+      if (id) { if (available) unavailableIds.delete(id); else unavailableIds.add(id); }
+      if (!available) setSnapshot((previous) => previous.scope !== scope || !previous.data ? previous : ({
+        ...previous,
+        data: { posts: previous.data.posts.filter((post) => post.id !== postId), plans: previous.data.plans.filter((plan) => plan.id !== planId) },
+      }));
+      setTarget({ revision, scope, postId, planId, data: available ? data : null, loading: false,
+        error: available ? "" : "This item is no longer available. It may have been deleted or your access may have changed." });
+    } catch (cause) {
+      if (matches()) setTarget({ revision, scope, postId, planId, data: null, loading: false, error: activityError(cause).message });
+    }
+  }, [scope, userId]);
+  const clearActivityTarget = useCallback(() => { targetRequest.current = null; setTarget(null); }, []);
 
   const refresh = useCallback(async (afterMutation = false): Promise<void> => {
     if (!userId || activeScope.current !== scope) return;
@@ -106,8 +155,15 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     }));
     const request = (async () => {
       try {
-        const data = await fetchSocial();
+        const fetched = await fetchSocial();
         if (current !== generation.current || activeScope.current !== scope) return;
+        const requested = targetRequest.current;
+        if (requested) await openActivityTarget(requested.postId, requested.planId, true);
+        if (current !== generation.current || activeScope.current !== scope) return;
+        const data = {
+          posts: fetched.posts.filter((post) => !unavailableTargets.current.posts.has(post.id)),
+          plans: fetched.plans.filter((plan) => !unavailableTargets.current.plans.has(plan.id)),
+        };
         lastRefreshFailed.current = false;
         setSnapshot((previous) => ({
           ...previous,
@@ -136,7 +192,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     })();
     inFlight.current = request;
     return request;
-  }, [scope, userId]);
+  }, [scope, userId, openActivityTarget]);
 
   const latestRefresh = useRef(refresh);
   latestRefresh.current = refresh;
@@ -207,16 +263,28 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   }, [userId, refresh]);
 
   const matches = snapshot.scope === scope;
+  const activityTarget = target?.scope === scope ? target : null;
+  const baseData = matches ? snapshot.data : null;
+  const data = useMemo(() => {
+    if (!baseData || !activityTarget) return baseData;
+    return {
+      posts: [...(activityTarget.data?.posts ?? []), ...baseData.posts.filter((post) => post.id !== activityTarget.postId)],
+      plans: [...(activityTarget.data?.plans ?? []), ...baseData.plans.filter((plan) => plan.id !== activityTarget.planId)],
+    };
+  }, [baseData, activityTarget]);
   return (
     <SocialContext.Provider value={{
       userId,
-      data: matches ? snapshot.data : null,
+      data,
       refreshing: matches ? snapshot.refreshing : Boolean(userId),
       error: matches ? snapshot.error : "",
       setupRequired: matches ? snapshot.setupRequired : false,
       busy: userId !== null && busyOwner === userId,
       refresh,
       run,
+      activityTarget,
+      openActivityTarget,
+      clearActivityTarget,
     }}>
       {children}
     </SocialContext.Provider>

@@ -74,6 +74,15 @@ class MockAccountService:
         self.hold_circles_snapshot = False
         self.held_circles_snapshots = []
         self.row_limit = None
+        self.inbox_by_user = {}
+        self.inbox_error = None
+        self.inbox_network_failure = False
+        self.inbox_mutation_error = False
+        self.hold_inbox_snapshot = False
+        self.held_inbox_snapshots = []
+        self.hold_inbox_mark = False
+        self.held_inbox_marks = []
+        self.activity_serial = 0
 
     def switch_user(self, user_id, display_name, username, email):
         """Select a second fictional account after sign-out, with isolated records."""
@@ -110,6 +119,26 @@ class MockAccountService:
 
     def current_circles(self):
         return self.circles_by_user.setdefault(self.user_id, [])
+
+    def current_inbox(self):
+        return self.inbox_by_user.setdefault(self.user_id, [])
+
+    def inbox_snapshot(self):
+        items = self.current_inbox()[:100]
+        return {"items": items, "unread_count": sum(item["read_at"] is None for item in items)}
+
+    def add_activity(self, kind, actor_id=FRIEND_ID, owner=None, **source):
+        self.activity_serial += 1
+        actor = self.profile if actor_id == self.user_id else self.other_profiles[actor_id]
+        item = {
+            "id": f"bbbbbbbb-bbbb-4bbb-8bbb-{self.activity_serial:012d}",
+            "kind": kind, "actor": actor.copy(), "created_at": NOW, "read_at": None,
+            "post_id": None, "plan_id": None, "request_id": None, "comment_id": None,
+            "plan_title": None, "rsvp_going": None,
+        }
+        item.update(source)
+        self.inbox_by_user.setdefault(owner or self.user_id, []).insert(0, item)
+        return item
 
     def handle(self, route):
         request = route.request
@@ -208,6 +237,30 @@ class MockAccountService:
                 else:
                     respond(self.current_circles())
                 return
+            if name == "activity_inbox_snapshot":
+                if self.inbox_network_failure:
+                    route.abort("connectionfailed")
+                elif self.inbox_error:
+                    fail(self.inbox_error, "Inbox unavailable", 404)
+                elif self.hold_inbox_snapshot:
+                    self.held_inbox_snapshots.append((route, json.loads(json.dumps(self.inbox_snapshot()))))
+                    self.hold_inbox_snapshot = False
+                else:
+                    respond(self.inbox_snapshot())
+                return
+            if name == "mark_activity_read":
+                if self.inbox_mutation_error:
+                    fail("42501", "Read update denied", 403)
+                    return
+                if self.hold_inbox_mark:
+                    self.held_inbox_marks.append((route, self.user_id, list(body["activity_ids"])))
+                    self.hold_inbox_mark = False
+                    return
+                for item in self.current_inbox():
+                    if item["id"] in body["activity_ids"]:
+                        item["read_at"] = item["read_at"] or NOW
+                respond(None)
+                return
             if self.mutation_error:
                 fail("42501", "permission denied", 403)
                 return
@@ -243,6 +296,7 @@ class MockAccountService:
             elif name == "respond_friend_request":
                 target = next(r for r in self.requests if r["id"] == body["request_id"])
                 self.requests = [r for r in self.requests if r["id"] != body["request_id"]]
+                self.inbox_by_user[self.user_id] = [item for item in self.current_inbox() if item["request_id"] != body["request_id"]]
                 if body["accept_request"]:
                     self.friendships.append({"id": "accepted-friendship", "user_a": USER_ID, "user_b": target["requester_id"], "created_at": NOW})
             elif name in ["remove_friend", "block_person"]:
@@ -254,6 +308,8 @@ class MockAccountService:
                             circle["member_ids"] = [member for member in circle["member_ids"] if member != target_id]
                         elif owner == target_id:
                             circle["member_ids"] = [member for member in circle["member_ids"] if member != self.user_id]
+                self.inbox_by_user[self.user_id] = [item for item in self.current_inbox() if item["actor"]["id"] != target_id]
+                self.inbox_by_user[target_id] = [item for item in self.inbox_by_user.get(target_id, []) if item["actor"]["id"] != self.user_id]
                 if name == "block_person":
                     self.requests = [r for r in self.requests if target_id not in [r["requester_id"], r["recipient_id"]]]
                     self.blocks.append({"blocked_id": target_id, "created_at": NOW})
@@ -938,11 +994,12 @@ class AccountIntegrationTests(unittest.TestCase):
         panel = self.main_connections()
         expect(panel.get_by_text("Test Bea", exact=True)).to_be_visible()
         self.service.requests = [{"id": INCOMING_REQUEST_ID, "requester_id": INCOMING_ID, "recipient_id": USER_ID, "status": "pending", "created_at": NOW}]
+        self.service.add_activity("friend_request", actor_id=INCOMING_ID, request_id=INCOMING_REQUEST_ID)
         panel.get_by_role("button", name="Refresh your connections", exact=True).click()
         self.expect_pending_badge(1)
         self.page.get_by_role("button", name="Open notifications", exact=True).click()
-        notices = self.page.get_by_role("dialog", name="A little heads-up.", exact=True)
-        expect(notices.get_by_text("Test Ana wants to connect", exact=True)).to_be_visible()
+        notices = self.page.get_by_role("dialog", name="Activity inbox", exact=True)
+        expect(notices.get_by_text("Test Ana sent you a friend request", exact=True)).to_be_visible()
         expect(notices.get_by_text("Ana wants to connect", exact=True)).to_have_count(0)
         expect(notices.get_by_text("Bea’s making coffee plans", exact=True)).to_have_count(0)
         notices.get_by_role("button", name="Close dialog", exact=True).click()
@@ -959,9 +1016,9 @@ class AccountIntegrationTests(unittest.TestCase):
         expect(panel.get_by_text("No incoming requests right now.", exact=True)).to_be_visible()
         self.expect_pending_badge(0)
         self.page.get_by_role("button", name="Open notifications", exact=True).click()
-        notices = self.page.get_by_role("dialog", name="A little heads-up.", exact=True)
-        expect(notices.get_by_text("No incoming friend requests right now.", exact=True)).to_be_visible()
-        expect(notices.get_by_text("Test Ana wants to connect", exact=True)).to_have_count(0)
+        notices = self.page.get_by_role("dialog", name="Activity inbox", exact=True)
+        expect(notices.get_by_text("You’re all caught up", exact=True)).to_be_visible()
+        expect(notices.get_by_text("Test Ana sent you a friend request", exact=True)).to_have_count(0)
         notices.get_by_role("button", name="Close dialog", exact=True).click()
         self.assertIsNone(self.demo_state(USER_ID)["sharing"])
 

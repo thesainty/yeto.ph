@@ -23,6 +23,8 @@ import type { PersonId } from "../types";
 import "./friends.css";
 
 interface FriendsProps {
+  openRequests?: boolean;
+  focusRequestId?: string | null;
   friendIds: PersonId[];
   requestStatus: "pending" | "accepted" | "declined";
   onAccept: () => void;
@@ -51,7 +53,7 @@ export default function Friends(props: FriendsProps) {
             Manage your real friends and requests here. Home updates and Plans
             use the people you explicitly select. The map and journey tools remain demos.
           </p>
-          <ConnectionsPanel />
+          <ConnectionsPanel initialView={props.openRequests ? "requests" : "friends"} focusRequestId={props.focusRequestId} />
         </section>
       </div>
     );
