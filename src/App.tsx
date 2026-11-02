@@ -186,7 +186,7 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    document.title = `TARA — ${nav.find((item) => item.id === tab)?.label} | Your people. A little closer.`;
+    document.title = `TARA — ${nav.find((item) => item.id === tab)?.label} | Stay connected. A little closer.`;
   }, [tab]);
   useEffect(() => {
     if (!toast) return;
@@ -613,7 +613,7 @@ export default function App() {
               )}
               <footer className="main-footer">
                 <Logo compact />
-                <span>Your people. A little closer.</span>
+                <span>Stay connected. A little closer.</span>
                 <Heart size={12} fill="currentColor" />
                 <button className="pilot-guide-link" onClick={() => setModal("pilot")}>Pilot guide</button>
               </footer>

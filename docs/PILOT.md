@@ -1,6 +1,6 @@
 # TARA invited-user pilot
 
-**Your people. A little closer.**
+**Stay connected. A little closer.**
 
 Start with 5–10 people you know for a suggested 2–3 days at [tara-together.vercel.app](https://tara-together.vercel.app/). The aim is to learn whether people can connect, share an update, and make a plan without help.
 
@@ -14,7 +14,7 @@ Start with one pair. Confirm their sign-in and any confirmation email work befor
 
 The website has a public URL and signup. This pilot limits whom you invite; the app does not enforce an invitation-only signup gate. Keep the pilot link within your chosen group.
 
-> I’m trying a small pilot of TARA — Your people. A little closer.
+> I’m trying a small pilot of TARA — Stay connected. A little closer.
 >
 > Would you try https://tara-together.vercel.app/ over the next couple of days? Sign in or create your own account, connect with someone you know, share a small update, and try a plan together. Open **Pilot guide** in the app for the steps.
 >

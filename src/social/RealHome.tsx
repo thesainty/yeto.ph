@@ -148,7 +148,7 @@ export default function RealHome() {
     <section className="social-screen" aria-label="Real feed">
       <div className="social-heading">
         <span className="eyebrow">YOUR REAL FEED</span>
-        <h2>Your people, a little closer.</h2>
+        <h2>Stay connected. A little closer.</h2>
         <p>Updates from you and the friends who chose to share with you. Your private audience applies to each post.</p>
       </div>
       <SocialStatus />

@@ -1,4 +1,4 @@
-# TARA — Your people. A little closer.
+# TARA — Stay connected. A little closer.
 
 A playful, Philippines-first prototype for staying close to friends and family. Built from the approved mango, coral, and lilac mockup with original local SVG artwork and locally bundled fonts.
 

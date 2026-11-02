@@ -31,7 +31,7 @@ export default function PilotGuide({
   }
 
   return (
-    <Modal title="Pilot guide" subtitle="Your people. A little closer." onClose={onClose}>
+    <Modal title="Pilot guide" subtitle="Stay connected. A little closer." onClose={onClose}>
       <div className="pilot-guide">
         <section>
           <h3>Start with your real account</h3>
