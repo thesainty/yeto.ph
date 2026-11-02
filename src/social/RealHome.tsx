@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
-import { Heart, MessageCircle, Plus, Send, Trash2, Users } from "lucide-react";
+import { Heart, MessageCircle, RefreshCw, Send, ShieldCheck, Trash2, Users } from "lucide-react";
 import { Modal } from "../components/ui";
-import { useConnections } from "../account/ConnectionsProvider";
 import { useSocial } from "./SocialProvider";
-import { addComment, createPost, deleteComment, deletePost, setLike } from "./api";
+import { addComment, deleteComment, deletePost, setLike } from "./api";
 import type { SocialPost } from "./types";
-import RecipientPicker from "./RecipientPicker";
-import AudienceReview from "./AudienceReview";
-import { MAX_RECIPIENTS } from "./circles";
-import { PersonAvatar, SocialStatus, socialDate } from "./SocialUi";
+import PostComposer from "./PostComposer";
+import { PersonAvatar, socialDate } from "./SocialUi";
 import "./social.css";
+import "./compact-feed.css";
 
 function readableError(cause: unknown) {
   return cause instanceof Error ? cause.message : "We couldn’t save your change. Please try again.";
@@ -112,82 +110,38 @@ function PostCard({ post }: { post: SocialPost }) {
 }
 
 export default function RealHome() {
-  const { data, userId, run, busy, refreshing, error } = useSocial();
-  const connections = useConnections();
-  const [body, setBody] = useState("");
-  const [viewers, setViewers] = useState<string[]>([]);
+  const { data, userId, busy, refreshing, error, setupRequired, refresh } = useSocial();
   const [message, setMessage] = useState("");
-  const [formError, setFormError] = useState("");
-  const disabled = busy || refreshing || !data || !!error;
 
-  useEffect(() => {
-    setBody("");
-    setViewers([]);
-    setMessage("");
-    setFormError("");
-  }, [userId]);
-
-  async function publish() {
-    if (disabled || !body.trim()) return;
-    setMessage("");
-    setFormError("");
-    const knownFriends = new Set(connections.data?.friends.map((person) => person.id));
-    if (viewers.length > MAX_RECIPIENTS) {
-      setFormError(`Choose up to ${MAX_RECIPIENTS} friends for this update.`);
-      return;
-    }
-    if (viewers.some((id) => !knownFriends.has(id)) || (viewers.length && (connections.error || connections.refreshing))) {
-      setFormError("Your selected friends have changed. Refresh your friends list and choose again.");
-      return;
-    }
-    try {
-      const recipients = [...viewers];
-      await run(() => createPost(body.trim(), recipients));
-      setBody("");
-      setViewers([]);
-      setMessage("Your update was saved.");
-    } catch (cause) {
-      setFormError(readableError(cause));
-    }
-  }
+  useEffect(() => { setMessage(""); }, [userId]);
 
   return (
-    <section className="social-screen" aria-label="Real feed">
-      <div className="social-heading">
-        <span className="eyebrow">YOUR REAL FEED</span>
-        <h2>Stay connected. A little closer.</h2>
-        <p>Updates from you and the friends who chose to share with you. Your private audience applies to each post.</p>
+    <section className="social-screen compact-real-feed" aria-label="Real feed">
+      <PostComposer key={userId ?? "anonymous"} onPublished={() => setMessage("Your update was saved.")} />
+      <div className="compact-feed-toolbar">
+        <h2>Your feed</h2>
+        <button type="button" className="icon-button" onClick={() => void refresh()} disabled={refreshing || busy} aria-label="Refresh feed and plans" title="Refresh feed">
+          <RefreshCw size={17} className={refreshing ? "social-spinning" : ""} />
+        </button>
       </div>
-      <SocialStatus />
+      {error && (
+        <div className="social-error" role="alert">
+          <ShieldCheck size={19} />
+          <div>{setupRequired && <strong>Feed and Plans setup is pending</strong>}<p>{error}</p></div>
+        </div>
+      )}
+      {!data && !error && <div className="card social-empty compact-feed-empty" role="status"><strong>Loading your feed and plans…</strong></div>}
       {message && <p className="social-message" role="status">{message}</p>}
       {data && (
-        <>
-          <form className="card social-form" aria-label="Post a check-in" onSubmit={(event) => { event.preventDefault(); void publish(); }}>
-            <div className="social-heading"><h3><Plus size={17} /> A little update for your people</h3></div>
-            <label className="social-field">
-              Your update
-              <textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={240} rows={3} placeholder="Home safely, a small win, a little hello…" required disabled={disabled} />
-            </label>
-            <RecipientPicker selected={viewers} onChange={setViewers} disabled={disabled} />
-            {formError && <p className="social-inline-error" role="alert">{formError}</p>}
-            <AudienceReview selected={viewers} kind="post" />
-            <div className="social-actions">
-              <small className="social-muted">{body.length}/240 · A text update, never your GPS location.</small>
-              <button className="button button-coral" type="submit" disabled={disabled || !body.trim() || (viewers.length > 0 && (connections.refreshing || !!connections.error))}>
-                <Send size={15} /> {busy ? "Saving…" : "Publish update"}
-              </button>
+        <div className="social-feed-list">
+          {data.posts.length ? data.posts.map((post) => <PostCard post={post} key={post.id} />) : (
+            <div className="card social-empty compact-feed-empty">
+              <Heart size={24} />
+              <h3>Your feed starts here.</h3>
+              <p>Share a little update, or <a href="#friends">find your friends</a>.</p>
             </div>
-          </form>
-          <div className="social-feed-list">
-            {data.posts.length ? data.posts.map((post) => <PostCard post={post} key={post.id} />) : (
-              <div className="card social-empty">
-                <Heart size={26} />
-                <h3>Your feed starts with a little hello.</h3>
-                <p>Post a private update, or choose specific friends to share it with. Their updates appear here only when they include you.</p>
-              </div>
-            )}
-          </div>
-        </>
+          )}
+        </div>
       )}
     </section>
   );

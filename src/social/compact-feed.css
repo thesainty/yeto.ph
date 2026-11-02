@@ -1,0 +1,97 @@
+.compact-real-feed { gap: 14px; }
+.compact-feed-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.compact-feed-toolbar h2 { margin: 0; font-size: 16px; letter-spacing: -0.3px; }
+.compact-feed-toolbar .icon-button { width: 32px; height: 32px; color: #958775; }
+.compact-real-feed .compact-composer {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border-radius: 16px;
+}
+.compact-composer-prompt {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-radius: 22px;
+  background: #f4f0e9;
+  color: #8c8275;
+  text-align: left;
+  padding: 13px 16px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.compact-composer-prompt:hover:not(:disabled) { background: #ede6dc; }
+.compact-real-feed .social-feed-list { gap: 14px; }
+.compact-real-feed .social-post { padding: 17px 18px; border-radius: 17px; }
+.compact-real-feed .social-meta { margin: 9px 0; font-size: 10px; line-height: 1.65; }
+.compact-real-feed .social-post-body { font-size: 15px; margin: 12px 0; }
+.compact-real-feed .social-post-actions { padding-top: 10px; gap: 18px; }
+.compact-real-feed .social-reaction { font-size: 11px; }
+.compact-feed-empty { padding: 25px 18px; }
+.compact-feed-empty h3 { font-size: 17px; }
+.compact-feed-empty a { color: #806292; font-weight: 700; text-underline-offset: 3px; }
+.post-composer { min-width: 0; margin-top: 20px; }
+.post-composer-form { display: flex; flex-direction: column; gap: 16px; }
+.post-composer-person { display: flex; align-items: center; gap: 11px; }
+.post-composer-person > div { display: flex; align-items: flex-start; flex-direction: column; gap: 6px; min-width: 0; }
+.post-composer-person strong { font-size: 13px; overflow-wrap: anywhere; }
+.post-composer-audience-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border: 1px solid #e6ddcf;
+  border-radius: 8px;
+  background: #f6f0e5;
+  color: #87765b;
+  font-size: 10px;
+  font-weight: 700;
+}
+.post-composer-form .social-field textarea {
+  min-height: 140px;
+  padding: 12px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 18px;
+}
+.post-composer-form .social-field textarea:focus-visible { outline-offset: 3px; border-radius: 5px; }
+.post-composer .audience-review { padding: 11px 12px; }
+.post-composer .audience-review-heading { font-size: 11px; gap: 6px; }
+.post-composer .audience-review p { font-size: 11px; margin-top: 4px; }
+.post-composer .audience-review-details { margin-top: 5px; font-size: 11px; }
+.post-composer .audience-review-details:not([open]) ~ .audience-review-note { display: none; }
+.post-composer-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid #eee5d8; padding-top: 14px; }
+.post-composer-footer .button { min-width: 145px; }
+.post-composer-audience { display: flex; flex-direction: column; gap: 14px; }
+.post-composer-back { display: inline-flex; align-items: center; align-self: flex-start; gap: 7px; border: 0; background: transparent; color: #8a729d; font-size: 11px; padding: 5px 0; }
+.post-composer-done { width: 100%; }
+.post-composer .social-recipient-picker { padding: 0; border: 0; }
+.post-composer .social-sharing-note { font-size: 10px; }
+
+:root[data-theme="dark"] .compact-feed-toolbar .icon-button { color: var(--theme-muted); }
+:root[data-theme="dark"] .compact-composer-prompt { background: var(--theme-raised); color: var(--theme-muted); }
+:root[data-theme="dark"] .compact-composer-prompt:hover:not(:disabled) { background: #354052; }
+:root[data-theme="dark"] .post-composer-audience-button { background: #343027; color: #d2c09c; border-color: #514735; }
+:root[data-theme="dark"] .post-composer-person strong { color: var(--theme-text); }
+:root[data-theme="dark"] .post-composer .social-field textarea { background: transparent; color: var(--theme-text); }
+:root[data-theme="dark"] .post-composer-footer { border-color: var(--theme-border); }
+:root[data-theme="dark"] .post-composer-back,
+:root[data-theme="dark"] .compact-feed-empty a { color: var(--theme-accent); }
+
+@media (max-width: 640px) {
+  .compact-real-feed { gap: 12px; }
+  .compact-real-feed .compact-composer { padding: 11px 12px; }
+  .compact-composer-prompt { padding: 12px 13px; font-size: 12px; }
+  .compact-real-feed .social-post { padding: 15px; }
+  .compact-real-feed .social-post-body { font-size: 14px; }
+  .post-composer { margin-top: 18px; }
+  .post-composer-form .social-field textarea { font-size: 17px; min-height: 125px; }
+  .post-composer-footer .button { min-width: 140px; }
+}

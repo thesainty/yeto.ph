@@ -38,6 +38,36 @@ TEST_PASSWORD = "Mock-password-123!"
 NOW = "2026-10-31T08:00:00Z"
 
 
+def open_post(page):
+    """Open the compact Home composer through its visible entry point."""
+    audience = page.get_by_role("dialog", name="Choose audience", exact=True)
+    if audience.count():
+        audience.get_by_role("button", name="Done choosing audience", exact=True).click()
+    dialog = page.get_by_role("dialog", name="Create update", exact=True)
+    if not dialog.count():
+        page.get_by_role("button", name=re.compile(r"^(Share an update|Continue update)$")).click()
+    expect(dialog).to_be_visible()
+    return dialog
+
+
+def open_audience(page):
+    """Recipient search lives in the intentional audience step, away from Home."""
+    dialog = page.get_by_role("dialog", name="Choose audience", exact=True)
+    if not dialog.count():
+        open_post(page).get_by_role("button", name=re.compile(r"^Audience:")).click()
+    expect(dialog).to_be_visible()
+    return dialog
+
+
+def close_post(page):
+    audience = page.get_by_role("dialog", name="Choose audience", exact=True)
+    if audience.count():
+        audience.get_by_role("button", name="Done choosing audience", exact=True).click()
+    dialog = page.get_by_role("dialog", name="Create update", exact=True)
+    if dialog.count():
+        dialog.get_by_role("button", name="Close dialog", exact=True).click()
+
+
 def encoded_json(value):
     return base64.urlsafe_b64encode(json.dumps(value).encode()).decode().rstrip("=")
 
@@ -372,6 +402,7 @@ class AccountIntegrationTests(unittest.TestCase):
         return self.page.get_by_role("dialog", name="Your TARA account", exact=True)
 
     def open_account(self):
+        close_post(self.page)
         self.page.get_by_role("button", name="Open your profile", exact=True).click()
         if self.account().count() == 0:
             self.page.get_by_role("dialog").get_by_role("button", name="Set up your account", exact=True).click()
@@ -731,7 +762,9 @@ class AccountIntegrationTests(unittest.TestCase):
         self.sign_in()
         self.close_account()
         main = self.page.get_by_role("main")
+        open_post(self.page)
         main.get_by_role("textbox", name="Your update", exact=True).fill("Maria private unsent check-in")
+        close_post(self.page)
         main.get_by_role("button", name="Comments on update by Maria Test", exact=True).click()
         main.get_by_role("textbox", name="Comment on update by Maria Test", exact=True).fill("Maria private unsent comment")
         second = self.context.new_page()
@@ -756,7 +789,9 @@ class AccountIntegrationTests(unittest.TestCase):
         second_account.get_by_role("button", name="Sign in to TARA", exact=True).click()
         expect(second_account.get_by_label("Display name", exact=True)).to_have_value("Luna Other")
         self.expect_shell_identity("Luna Other", "luna_other", "Luna")
+        open_post(self.page)
         expect(main.get_by_role("textbox", name="Your update", exact=True)).to_have_value("")
+        close_post(self.page)
         expect(main.get_by_text("Maria shared fixture", exact=True)).to_have_count(0)
         expect(main.get_by_role("textbox", name="Comment on update by Maria Test", exact=True)).to_have_count(0)
         main.get_by_role("button", name="Comments on update by Luna Other", exact=True).click()

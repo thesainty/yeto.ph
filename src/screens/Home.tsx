@@ -8,7 +8,6 @@ import {
   MapPin,
   MessageCircle,
   Navigation,
-  Plus,
   Send,
   ShieldCheck,
   Sparkles,
@@ -33,114 +32,6 @@ interface Props {
   onNavigate: (tab: Tab) => void;
 }
 
-function JourneyIllustration() {
-  return (
-    <svg
-      viewBox="0 0 250 265"
-      fill="none"
-      aria-hidden="true"
-      className="journey-illustration"
-    >
-      <circle cx="148" cy="132" r="89" fill="#FFDF70" />
-      <path
-        d="M45 193c-15-9-22-20-25-36 18 1 32 10 37 25-2-22 5-38 21-49 7 22 2 41-17 56"
-        fill="#C3B749"
-      />
-      <path
-        d="m36 151 29 72"
-        stroke="#8B9B46"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-      <path
-        d="M195 70c0-2 2-4 4-4s4 2 4 4v7h7c2 0 4 2 4 4s-2 4-4 4h-7v7c0 2-2 4-4 4s-4-2-4-4v-7h-7c-2 0-4-2-4-4s2-4 4-4h7v-7Z"
-        fill="#FFF1B6"
-      />
-      <path d="m57 64 3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8Z" fill="#FFF7D1" />
-      <ellipse cx="142" cy="256" rx="77" ry="8" fill="#F5C437" />
-      <path
-        d="M128 43c-27-3-49 16-48 40 1 18-6 31-16 40-19 18-14 41 8 48 19 5 37-7 47-23l9-105Z"
-        fill="#202A3C"
-      />
-      <path
-        d="M127 47c18-4 39 7 40 29l-1 26c0 22-17 40-38 35l-12-12-5-40 16-38Z"
-        fill="#DFA47A"
-      />
-      <path d="m123 124-3 25 33 9-9-35" fill="#DFA47A" />
-      <path d="m121 129 23 1c-4 11-13 16-23 12v-13Z" fill="#C98C66" />
-      <path
-        d="M100 89c3-10 8-20 18-27 2 10 12 19 28 24 12 3 20 0 25-5-2-26-18-44-42-43-26 1-44 20-41 47l12 4Z"
-        fill="#202A3C"
-      />
-      <path d="M102 94c-10-8-17 1-11 12 3 5 8 8 14 7" fill="#DFA47A" />
-      <path
-        d="M143 96c1-4 6-4 7 0m-23-1c1-4 6-4 7 0"
-        stroke="#483A36"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M136 109c3 3 7 3 10 0"
-        stroke="#9C514B"
-        strokeWidth="2.3"
-        strokeLinecap="round"
-      />
-      <path
-        d="M117 145c-20-1-36 8-44 28l-15 80h119l-3-71c-2-20-10-31-23-37-6 13-24 17-34 0Z"
-        fill="#FF8A69"
-      />
-      <path
-        d="M104 148c-6 18-9 47-12 105H76l4-58c1-18 8-34 17-46l7-1Z"
-        fill="#EEE0AE"
-      />
-      <path
-        d="M109 158c-3 22-6 49-7 95H87c2-38 7-75 14-100l8 5Z"
-        fill="#F7EBCB"
-      />
-      <path
-        d="M122 167c10 7 22 7 31 0m-47 43 1 41"
-        stroke="#E46C54"
-        strokeWidth="2.3"
-        strokeLinecap="round"
-      />
-      <path
-        d="m164 176 17 31-17 27c-5 8-1 16 8 15 4 0 8-3 10-7l19-29c5-8 5-14 0-22l-19-28c-9-12-24-2-18 13Z"
-        fill="#DFA47A"
-      />
-      <path d="m159 164 16 28 24-14-17-22c-11-13-29-6-23 8Z" fill="#FF9B76" />
-      <rect
-        x="144"
-        y="187"
-        width="25"
-        height="43"
-        rx="5"
-        transform="rotate(12 144 187)"
-        fill="#244847"
-      />
-      <rect
-        x="148"
-        y="191"
-        width="17"
-        height="32"
-        rx="2"
-        transform="rotate(12 148 191)"
-        fill="#A9D8BF"
-      />
-      <path
-        d="m99 179-8 37 49 10c9 2 17-2 18-9l-4-6c-3-4-5-5-8-2l-9 3-28-12 8-15c5-15-13-20-18-6Z"
-        fill="#E9B28C"
-      />
-      <path d="m83 189 28 9 10-30c5-17-18-24-25-8l-13 29Z" fill="#FF9B76" />
-      <path
-        d="M57 234c6-6 13-6 19 0m-31-8c3-3 7-3 10 0"
-        stroke="#FFF2AD"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-      <circle cx="213" cy="139" r="5" fill="#FFF2AD" />
-    </svg>
-  );
-}
 
 function CoffeeIllustration() {
   return (
@@ -251,33 +142,14 @@ export default function Home({
   const coffeePlan = plans.find((plan) => plan.id === "coffee-bgc") ?? plans[0];
 
   return (
-    <div className="home-screen">
-      <section className="journey-hero" aria-labelledby="journey-title">
-        <div className="journey-copy">
-          <span className="journey-kicker">
-            <Sparkles size={13} /> A LITTLE CLOSER, WHEREVER
-          </span>
-          <h2 id="journey-title">
-            Heading
-            <br />
-            somewhere?
-          </h2>
-          <p>
-            Let your people know.
-            <br />
-            Stay close on the go.
-          </p>
-          <button
-            className="button button-primary journey-share"
-            onClick={onShare}
-          >
-            <Navigation size={17} fill="currentColor" /> Share a journey
-          </button>
-        </div>
-        <JourneyIllustration />
+    <div className="home-screen home-screen-compact">
+      <section className="card demo-composer" aria-label="Share a demo update">
+        <Avatar id="mika" size={36} />
+        <button type="button" className="demo-compose-trigger" aria-label="Post a check-in" onClick={onCheckIn}>Share a little update…</button>
+        <button type="button" className="icon-button demo-journey-trigger" aria-label="Share a journey" title="Share a demo journey" onClick={onShare}><Navigation size={20} /></button>
       </section>
 
-      <button
+      {sharing && <button
         className={`journey-status ${sharing ? "journey-status-active" : ""}`}
         onClick={() => (sharing ? onNavigate("map") : onShare)}
       >
@@ -299,21 +171,12 @@ export default function Home({
           </small>
         </span>
         <ChevronRight size={18} />
-      </button>
+      </button>}
 
       <div className="home-feed-heading">
         <div>
-          <span className="eyebrow">THE GOOD KIND OF CONNECTED</span>
-          <h2>A little closer, every day</h2>
+          <h2>Latest updates</h2>
         </div>
-        <button
-          className="icon-button home-check-in"
-          title="Post a check-in"
-          aria-label="Post a check-in"
-          onClick={onCheckIn}
-        >
-          <Plus size={21} />
-        </button>
       </div>
       <div className="home-feed-filters" aria-label="Feed filter">
         <button

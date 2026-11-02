@@ -206,6 +206,7 @@ class SocialBrowserTests(unittest.TestCase):
         return feed
 
     def main_plans(self):
+        accounts.close_post(self.page)
         self.page.get_by_role("navigation", name="Main navigation", exact=True).get_by_role("button", name=re.compile(r"^Plans")).click()
         return self.page.get_by_role("main")
 
@@ -220,18 +221,25 @@ class SocialBrowserTests(unittest.TestCase):
         expect(feed.get_by_text("A real invitation-only update from Bea.", exact=True)).to_be_visible()
         expect(feed.get_by_text("Home safely!", exact=True)).to_have_count(0)
         expect(feed.get_by_text("Coffee in BGC?", exact=True)).to_have_count(0)
+        accounts.open_post(self.page)
         update = feed.get_by_role("textbox", name="Your update", exact=True)
         update.fill("My private real update")
+        accounts.open_audience(self.page)
         expect(feed.get_by_text(re.compile(r"^Only me\."))).to_be_visible()
         checkbox = feed.get_by_role("checkbox", name="Test Bea (@bea_real_test)", exact=True)
         expect(checkbox).not_to_be_checked()
         expect(feed.get_by_role("checkbox", name=re.compile("Test Ana"))).to_have_count(0)
+        accounts.open_post(self.page)
         feed.get_by_role("button", name="Publish update", exact=True).click()
+        expect(self.page.get_by_role("dialog")).to_have_count(0)
         expect(feed.get_by_text("My private real update", exact=True)).to_be_visible()
         self.assertEqual(self.rpc_body("create_social_post"), {"body_text": "My private real update", "viewer_ids": []})
-        feed.get_by_role("textbox", name="Your update", exact=True).fill("Shared with one chosen friend")
+        accounts.open_post(self.page).get_by_role("textbox", name="Your update", exact=True).fill("Shared with one chosen friend")
+        accounts.open_audience(self.page)
         feed.get_by_role("checkbox", name="Test Bea (@bea_real_test)", exact=True).check()
+        accounts.open_post(self.page)
         feed.get_by_role("button", name="Publish update", exact=True).click()
+        expect(self.page.get_by_role("dialog")).to_have_count(0)
         expect(feed.get_by_text("Shared with one chosen friend", exact=True)).to_be_visible()
         self.assertEqual(self.rpc_body("create_social_post"), {"body_text": "Shared with one chosen friend", "viewer_ids": [accounts.FRIEND_ID]})
         self.assertIsNone(self.demo_state(accounts.USER_ID)["sharing"])
@@ -260,7 +268,7 @@ class SocialBrowserTests(unittest.TestCase):
         expect(article.get_by_text("A thoughtful real comment", exact=True)).to_have_count(0)
         self.assertEqual(self.rpc_body("delete_social_comment"), {"comment_id": "own-comment-1"})
         expect(article.get_by_role("button", name="Delete your update", exact=True)).to_have_count(0)
-        feed.get_by_role("textbox", name="Your update", exact=True).fill("Delete this own update")
+        accounts.open_post(self.page).get_by_role("textbox", name="Your update", exact=True).fill("Delete this own update")
         feed.get_by_role("button", name="Publish update", exact=True).click()
         own = feed.get_by_role("article", name="Update by Maria Test", exact=True)
         own.get_by_role("button", name="Delete your update", exact=True).click()
@@ -287,7 +295,7 @@ class SocialBrowserTests(unittest.TestCase):
 
     def test_04_account_switch_discards_real_content_and_unsent_drafts(self):
         feed = self.sign_in_feed()
-        feed.get_by_role("textbox", name="Your update", exact=True).fill("Never publish this first account draft")
+        accounts.open_post(self.page).get_by_role("textbox", name="Your update", exact=True).fill("Never publish this first account draft")
         self.open_account().get_by_role("button", name="Sign out", exact=True).click()
         expect(self.account().get_by_role("button", name="Sign in to TARA", exact=True)).to_be_visible()
         self.service.switch_user(accounts.SECOND_USER_ID, "Luna Other", "luna_other", "luna@example.test")
@@ -296,6 +304,7 @@ class SocialBrowserTests(unittest.TestCase):
         feed = self.page.get_by_role("region", name="Real feed", exact=True)
         expect(feed.get_by_text("A real invitation-only update from Bea.", exact=True)).to_have_count(0)
         expect(feed.get_by_text("Never publish this first account draft", exact=True)).to_have_count(0)
+        accounts.open_post(self.page)
         expect(feed.get_by_role("textbox", name="Your update", exact=True)).to_have_value("")
         self.assertEqual(self.service.matching("/rest/v1/rpc/create_social_post", "POST"), [])
         self.assertIsNone(self.demo_state(accounts.SECOND_USER_ID)["sharing"])
@@ -376,15 +385,18 @@ class SocialBrowserTests(unittest.TestCase):
 
     def test_07_failed_save_keeps_draft_and_private_plan_has_no_invitees(self):
         feed = self.sign_in_feed()
-        feed.get_by_role("textbox", name="Your update", exact=True).fill("Keep my failed update draft")
+        accounts.open_post(self.page).get_by_role("textbox", name="Your update", exact=True).fill("Keep my failed update draft")
         self.service.mutation_error = True
         feed.get_by_role("button", name="Publish update", exact=True).click()
-        expect(feed.get_by_role("alert")).to_be_visible()
+        expect(self.page.get_by_role("dialog", name="Create update", exact=True).get_by_role("alert")).to_be_visible()
         self.assertFalse(any(post["body"] == "Keep my failed update draft" for post in self.service.current_social()["posts"]))
         self.service.mutation_error = False
+        accounts.close_post(self.page)
         feed.get_by_role("button", name="Refresh feed and plans", exact=True).click()
+        accounts.open_post(self.page)
         expect(feed.get_by_role("textbox", name="Your update", exact=True)).to_have_value("Keep my failed update draft")
         feed.get_by_role("button", name="Publish update", exact=True).click()
+        expect(self.page.get_by_role("dialog")).to_have_count(0)
         expect(feed.get_by_text("Keep my failed update draft", exact=True)).to_be_visible()
         self.assertFalse(self.page.evaluate("Object.values(localStorage).some(value => value.includes('Keep my failed update draft'))"), "Real post contents must not be saved to demo/browser storage")
         main = self.main_plans()

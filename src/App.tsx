@@ -49,6 +49,7 @@ import { useDemoState } from "./useDemoState";
 import { useIdentity } from "./account/useIdentity";
 import type { Circle, PersonId, Plan, Tab } from "./types";
 import { useTheme } from "./theme/useTheme";
+import "./home-layout.css";
 
 const AccountPanel = lazy(() => import("./account/AccountPanel"));
 
@@ -383,7 +384,7 @@ export default function App() {
       >
         Skip to content
       </a>
-      <div className="app-shell">
+      <div className={`app-shell${tab === "home" ? " app-shell-home" : ""}`}>
         <aside className="sidebar">
           <button
             className="brand-button"
@@ -521,15 +522,15 @@ export default function App() {
               </button>
             </div>
           </header>
-          <div className="content-grid">
+          <div className={`content-grid${tab === "home" ? " content-grid-home" : ""}`}>
             <main
               id="main-content"
               ref={mainRef}
               tabIndex={-1}
               className="main-content"
             >
-              <div className="page-heading">
-                <span className="eyebrow">{copy.eyebrow}</span>
+              <div className={`page-heading${tab === "home" ? " page-heading-home" : ""}`}>
+                {tab !== "home" && <span className="eyebrow">{copy.eyebrow}</span>}
                 <h1>
                   <span>
                     {tab === "home"
@@ -540,7 +541,7 @@ export default function App() {
                     <Sun className="heading-sun" size={34} strokeWidth={2.7} />
                   )}
                 </h1>
-                <p>{copy.subtitle}</p>
+                {tab !== "home" && <p>{copy.subtitle}</p>}
               </div>
               {storageUnavailable && (
                 <div className="storage-notice" role="status">
@@ -548,7 +549,7 @@ export default function App() {
                   last until you refresh.
                 </div>
               )}
-              {tab === "home" && (
+              {tab === "home" && !account.session && !account.loading && (
                 <section
                   className="account-preview-callout"
                   aria-label="Real account setup"
@@ -558,21 +559,14 @@ export default function App() {
                   </span>
                   <div>
                     <strong>
-                      {account.session
-                        ? `Connected as ${identity.displayName}`
-                        : "Your people, for real."}
+                      You’re viewing the demo
                     </strong>
-                    <p>
-                      {account.session
-                        ? "Use real friends, feed, and plans. Map and journey tools remain demos."
-                        : "Create your own account. The sample feed and journeys stay separate."}
-                    </p>
                   </div>
                   <button
                     className="button button-soft"
                     onClick={() => setModal("account")}
                   >
-                    {account.session ? "Manage account" : "Set up your account"}
+                    Set up your account
                     <ArrowRight size={14} />
                   </button>
                 </section>
@@ -680,7 +674,7 @@ export default function App() {
               </footer>
             </main>
 
-            <aside className="right-rail" aria-label="Your circle at a glance">
+            {tab !== "home" && <aside className="right-rail" aria-label="Your circle at a glance">
               <section className="card circle-overview">
                 <div className="rail-heading">
                   <h2>
@@ -773,7 +767,7 @@ export default function App() {
                 <span>Built with a little Filipino heart.</span>
                 <span>Private by choice. Together by TARA.</span>
               </div>
-            </aside>
+            </aside>}
           </div>
         </div>
       </div>

@@ -32,6 +32,8 @@ class CircleBrowserTests(unittest.TestCase):
     rpc_body = social.SocialBrowserTests.rpc_body
 
     def picker(self, within=None):
+        if within is None or within.get_attribute("aria-label") != "Create a real plan":
+            accounts.open_audience(self.page)
         return (within or self.page).locator(".social-recipient-picker")
 
     def add_friend(self, friend_id=accounts.INCOMING_ID):
@@ -62,8 +64,9 @@ class CircleBrowserTests(unittest.TestCase):
 
     def publish(self, text):
         feed = self.page.get_by_role("region", name="Real feed", exact=True)
-        feed.get_by_role("textbox", name="Your update", exact=True).fill(text)
+        accounts.open_post(self.page).get_by_role("textbox", name="Your update", exact=True).fill(text)
         feed.get_by_role("button", name="Publish update", exact=True).click()
+        expect(self.page.get_by_role("dialog")).to_have_count(0)
         expect(feed.get_by_text(text, exact=True)).to_be_visible()
         return self.rpc_body("create_social_post")
 
@@ -77,6 +80,7 @@ class CircleBrowserTests(unittest.TestCase):
         expect(picker.get_by_text(re.compile(r"^Only me\."))).to_be_visible()
         expect(picker.locator("input[type=checkbox]:checked")).to_have_count(0)
         self.assertEqual(self.publish("A private default"), {"body_text": "A private default", "viewer_ids": []})
+        picker = self.picker(feed)
         picker.get_by_role("button", name="All current friends", exact=True).click()
         expect(picker.locator("input[type=checkbox]:checked")).to_have_count(61)
         selected_ids = [row["user_b"] for row in self.service.friendships]
@@ -94,6 +98,7 @@ class CircleBrowserTests(unittest.TestCase):
         body = self.publish("All friends from that tap")
         self.assertCountEqual(body["viewer_ids"], selected_ids)
         self.assertNotIn(accounts.INCOMING_ID, body["viewer_ids"])
+        picker = self.picker(feed)
         picker.get_by_role("button", name="All current friends", exact=True).click()
         expect(picker.locator("input[type=checkbox]:checked")).to_have_count(62)
         picker.get_by_role("button", name="Only me", exact=True).click()
@@ -117,6 +122,7 @@ class CircleBrowserTests(unittest.TestCase):
         picker.get_by_role("button", name="Use Pamilya", exact=True).click()
         first_body = self.publish("A fixed Pamilya audience")
         self.assertEqual(first_body["viewer_ids"], [accounts.FRIEND_ID])
+        picker = self.picker(feed)
         picker.get_by_role("button", name="Use Pamilya", exact=True).click()
         picker.get_by_role("button", name="Edit Pamilya", exact=True).click()
         editor = self.editor()
@@ -242,6 +248,7 @@ class CircleBrowserTests(unittest.TestCase):
         body = self.publish("A deliberate 500-person snapshot")
         self.assertEqual(len(body["viewer_ids"]), 500)
         self.assertNotIn(accounts.INCOMING_ID, body["viewer_ids"])
+        picker = self.picker(feed)
         expect(picker.get_by_role("button", name="All current friends", exact=True)).to_be_disabled()
 
     def test_07_full_friend_pagination_searches_beyond_1000_without_partial_all(self):
@@ -263,14 +270,13 @@ class CircleBrowserTests(unittest.TestCase):
         for width in [375, 320]:
             with self.subTest(width=width):
                 self.page.set_viewport_size({"width": width, "height": 812})
+                accounts.open_post(self.page).get_by_role("textbox", name="Your update", exact=True).fill("Do not publish while editing a circle")
                 picker = self.picker()
-                self.page.get_by_role("textbox", name="Your update", exact=True).fill("Do not publish while editing a circle")
                 picker.get_by_role("button", name="Create circle", exact=True).click()
                 editor = self.editor()
                 name = editor.get_by_role("textbox", name="Circle name", exact=True)
                 name.fill(f"Mobile circle {width}")
                 name.press("Enter")
-                expect(self.page.get_by_role("textbox", name="Your update", exact=True)).to_have_value("Do not publish while editing a circle")
                 self.assertEqual(self.service.matching("/rest/v1/rpc/create_social_post", "POST"), [])
                 expect(editor).to_be_visible()
                 dimensions = self.page.evaluate("({width:innerWidth, scroll:document.documentElement.scrollWidth})")
@@ -281,6 +287,8 @@ class CircleBrowserTests(unittest.TestCase):
                 editor.get_by_role("button", name="Save circle", exact=True).press("Enter")
                 expect(picker.get_by_role("button", name=f"Use Mobile circle {width}", exact=True)).to_be_visible()
                 expect(picker.locator("input[type=checkbox]:checked")).to_have_count(0)
+                expect(accounts.open_post(self.page).get_by_role("textbox", name="Your update", exact=True)).to_have_value("Do not publish while editing a circle")
+                picker = self.picker()
                 Path("test-results").mkdir(exist_ok=True)
                 self.page.screenshot(path=f"test-results/circles-mobile-{width}.png", full_page=True)
 

@@ -1,0 +1,60 @@
+/* Home gives the feed one clear column; other tabs keep their existing layout. */
+.content-grid.content-grid-home {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 800px;
+  padding-top: 20px;
+}
+.page-heading.page-heading-home { margin-bottom: 16px; }
+.page-heading.page-heading-home h1 { font-size: 24px; margin: 0; letter-spacing: -0.5px; gap: 8px; }
+.page-heading-home .heading-sun { width: 24px; height: 24px; }
+.app-shell-home .sidebar-note,
+.app-shell-home .sidebar-share { display: none; }
+.content-grid-home .account-preview-callout { padding: 11px 14px; margin-bottom: 14px; gap: 9px; }
+.content-grid-home .account-preview-callout > span { width: 28px; height: 28px; border-radius: 9px; }
+.content-grid-home .account-preview-callout > span > svg { width: 16px; height: 16px; }
+.content-grid-home .account-preview-callout strong { font-size: 11px; }
+.content-grid-home .account-preview-callout .button { min-height: 32px; padding: 7px 9px; }
+.home-screen.home-screen-compact { gap: 14px; }
+.home-screen-compact .demo-composer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 15px;
+}
+.demo-compose-trigger {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--theme-border);
+  border-radius: 24px;
+  min-height: 42px;
+  background: var(--theme-bg);
+  color: var(--theme-muted);
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 13px;
+}
+.demo-compose-trigger:hover { color: var(--theme-text); }
+.demo-journey-trigger { color: var(--theme-accent); flex: none; }
+.home-screen-compact .journey-status { margin: 0; padding: 10px 13px; }
+.home-screen-compact .home-feed-heading { margin: 2px 0 0; }
+.home-screen-compact .home-feed-heading h2 { font-size: 17px; margin: 0; }
+.home-screen-compact .home-feed-filters { margin: -4px 0 0; padding: 0; }
+.home-screen-compact .home-feed-filters > span { display: none; }
+.home-screen-compact .home-feed { gap: 14px; }
+.home-screen-compact .feed-card { padding: 17px; }
+.home-screen-compact .feed-meetup-copy { padding-top: 15px; }
+.home-screen-compact .feed-card h3 { font-size: 21px; }
+.home-screen-compact .feed-meetup-footer { margin-top: 15px; padding-top: 13px; }
+.home-screen-compact .home-feed-end { padding: 25px 10px 12px; }
+.content-grid-home .main-footer { padding-top: 18px; margin-top: 18px; }
+@media (max-width: 640px) {
+  .content-grid.content-grid-home { padding-top: 5px; padding-inline: 14px; }
+  .page-heading.page-heading-home { margin: 0 0 12px; }
+  .page-heading.page-heading-home h1 { font-size: 21px; }
+  .content-grid-home .account-preview-callout { flex-wrap: nowrap; padding: 10px; gap: 7px; }
+  .content-grid-home .account-preview-callout > div { flex: 1; }
+  .content-grid-home .account-preview-callout > .button { margin-left: 0; font-size: 9px; }
+  .home-screen-compact .demo-composer { gap: 8px; padding: 11px; }
+  .demo-compose-trigger { font-size: 12px; padding-inline: 11px; }
+  .home-screen-compact .feed-card { padding: 15px; }
+}
