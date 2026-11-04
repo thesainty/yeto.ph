@@ -1512,8 +1512,18 @@ select {
   .mobile-brand {
     display: block;
   }
+  .mobile-brand .logo {
+    width: 110px;
+  }
   .mobile-brand .tara-wordmark {
     width: 110px;
+  }
+  .mobile-brand .logo small {
+    align-self: stretch;
+    margin: 3px 0 0;
+    font-size: 8.5px;
+    line-height: 1.25;
+    text-wrap: balance;
   }
   .topbar-actions {
     gap: 13px;
@@ -1678,6 +1688,9 @@ select {
   }
 }
 @media (max-width: 370px) {
+  .mobile-brand .logo {
+    width: 88px;
+  }
   .content-grid {
     padding-inline: 15px;
   }

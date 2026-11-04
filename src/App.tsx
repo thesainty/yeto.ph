@@ -480,7 +480,7 @@ export default function App() {
               onClick={() => navigate("home")}
               aria-label="TARA home"
             >
-              <Logo compact />
+              <Logo />
             </button>
             <div className="topbar-actions">
               <span className="demo-badge">
