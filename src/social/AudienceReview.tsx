@@ -5,7 +5,7 @@ import "./audience-review.css";
 
 interface Props {
   selected: string[];
-  kind: "post" | "plan";
+  kind: "post" | "plan" | "poll";
 }
 
 interface ReviewProps extends Props {
@@ -34,9 +34,13 @@ function Review({ selected, kind, friends, refreshing, unavailable }: ReviewProp
         {privateAudience
           ? kind === "post"
             ? "This update is visible only to you."
+            : kind === "poll"
+              ? "This poll is visible only to you. No friends will be invited."
             : "You’re the organizer and only attendee. No friends will be invited."
           : kind === "post"
             ? "You and these selected friends can see this update."
+            : kind === "poll"
+              ? "You and these invited friends can see this poll, including invitee names and availability totals. Creating a plan keeps this audience."
             : "You and these invited friends can see this plan, including invitee and attendee names."}
       </p>
       {!privateAudience && (

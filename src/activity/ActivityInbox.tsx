@@ -17,6 +17,7 @@ function activityText(item: ActivityItem) {
     case "friend_request": return `${name} sent you a friend request`;
     case "friend_accepted": return `${name} accepted your friend request`;
     case "plan_invite": return `${name} invited you to ${item.plan_title || "a plan"}`;
+    case "poll_invite": return `${name} invited you to find a time for ${item.poll_title || "a get-together"}`;
     case "plan_rsvp": return `${name} ${item.rsvp_going ? "joined" : "left"} ${item.plan_title || "your plan"}`;
     case "post_comment": return `${name} commented on your update`;
     case "post_like": return `${name} liked your update`;
@@ -120,7 +121,7 @@ function InboxContents({ onClose, onOpen, onFriends }: Props) {
           <div className="activity-state" role="status">
             <span className="activity-empty-icon"><Bell size={25} /></span>
             <strong>You’re all caught up</strong>
-            <p>Friend requests, invitations, RSVPs, comments, and reactions will appear here.</p>
+            <p>Friend requests, plan invitations, availability polls, RSVPs, comments, and reactions will appear here.</p>
           </div>
         )}
         {localError && <p className="activity-action-error" role="alert">{localError}</p>}

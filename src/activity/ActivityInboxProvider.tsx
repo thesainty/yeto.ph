@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useAccount } from "../account/AccountProvider";
 import { useConnections } from "../account/ConnectionsProvider";
 import { useSocial } from "../social/SocialProvider";
+import { usePolls } from "../polls/PollsProvider";
 import { activityError, fetchActivity, markActivityRead } from "./api";
 import type { ActivitySnapshot } from "./api";
 
@@ -23,6 +24,7 @@ export function ActivityInboxProvider({ children }: { children: ReactNode }) {
   const { session } = useAccount();
   const connections = useConnections();
   const social = useSocial();
+  const polls = usePolls();
   const userId = session?.user.id ?? null;
   const relationships = connections.data ? JSON.stringify([
     connections.data.friends.map((person) => person.id).sort(),
@@ -112,7 +114,7 @@ export function ActivityInboxProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("visibilitychange", visible);
     };
   }, [userId, refresh]);
-  useEffect(() => { if (social.data) void refresh(); }, [social.data, refresh]);
+  useEffect(() => { if (social.data || polls.data) void refresh(); }, [social.data, polls.data, refresh]);
   const matches = snapshot.scope === scope;
   return <ActivityContext.Provider value={{
     userId, data: matches ? snapshot.data : null, refreshing: matches ? snapshot.refreshing : Boolean(userId),

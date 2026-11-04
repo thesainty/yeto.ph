@@ -6,6 +6,7 @@ import { ConnectionsProvider } from "./account/ConnectionsProvider";
 import { SocialProvider } from "./social/SocialProvider";
 import { AudienceCirclesProvider } from "./social/AudienceCirclesProvider";
 import { ActivityInboxProvider } from "./activity/ActivityInboxProvider";
+import { PollsProvider } from "./polls/PollsProvider";
 import "./styles.css";
 import "./theme/theme.css";
 import "./theme/screens-dark.css";
@@ -17,9 +18,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <ConnectionsProvider>
         <AudienceCirclesProvider>
           <SocialProvider>
-            <ActivityInboxProvider>
-              <App />
-            </ActivityInboxProvider>
+            <PollsProvider>
+              <ActivityInboxProvider>
+                <App />
+              </ActivityInboxProvider>
+            </PollsProvider>
           </SocialProvider>
         </AudienceCirclesProvider>
       </ConnectionsProvider>

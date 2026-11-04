@@ -38,3 +38,13 @@ node tests/database.test.mjs
 ```
 
 This executes 12 named checks with real PostgreSQL semantics in PGlite. The test fixture emulates Supabase's `auth.users` table, `auth.uid()`, API roles, and explicit default function grants. It verifies RLS, grants, input constraints, request ownership, friendship transitions, and blocking. It does **not** verify hosted Supabase Auth, email delivery, JWT issuance, deployment, multi-connection concurrency, or end-to-end remote connectivity. Those checks require the actual project after it is created.
+
+## Additive availability polls
+
+Existing projects use [`migrations/20261104121739_availability_polls.sql`](migrations/20261104121739_availability_polls.sql) after the accounts, social, saved-circle, and activity-inbox upgrades. Apply that new migration once; **do not rerun the account setup or earlier upgrades**. See [the poll setup and API contract](../docs/AVAILABILITY-POLLS.md).
+
+The connected project already records `availability_polls` at version `20261104122606`. Its source file keeps the CLI-generated timestamp above; do not rerun it on that project. Hosted rollback verification passed and existing-data fingerprints matched.
+
+Polls keep explicit recipient UUIDs, default to **Only me**, and allow up to 500 current friends. The organizer and invitees can vote for multiple proposed times. Only the organizer can convert a poll into one plan, using the remaining original audience; votes do not become RSVPs. Relationship removal/blocking permanently revokes poll access and votes. The upgrade adds private `poll_invite` inbox items without enabling push or email.
+
+Run `node tests/polls-database.test.mjs` for the isolated database contract. Before hosted rollout, review RLS/grants and compare existing-data counts. Verify the new RPCs in a rolled-back hosted transaction so test polls, votes, plans, and invitations do not persist. Existing accounts, data, storage namespaces, and Supabase settings must remain intact.

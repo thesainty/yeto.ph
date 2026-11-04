@@ -256,6 +256,11 @@ class MockAccountService:
                 # multi-user behavior are exercised by tests/social.py.
                 respond({"posts": self.social_posts, "plans": []})
                 return
+            if name in ["plan_polls_snapshot", "plan_poll_target_snapshot"]:
+                # Account/social regressions have no availability polls. The
+                # dedicated polls suite supplies its own intercepted records.
+                respond({"polls": []})
+                return
             if name == "audience_circles_snapshot":
                 if self.circles_network_failure:
                     route.abort("connectionfailed")

@@ -2,7 +2,7 @@ import { supabase } from "../lib/supabase";
 import type { Profile } from "../account/types";
 import type { SocialSnapshot } from "../social/types";
 
-export type ActivityKind = "friend_request" | "friend_accepted" | "plan_invite" | "plan_rsvp" | "post_comment" | "post_like";
+export type ActivityKind = "friend_request" | "friend_accepted" | "plan_invite" | "plan_rsvp" | "post_comment" | "post_like" | "poll_invite";
 export interface ActivityItem {
   id: string;
   kind: ActivityKind;
@@ -14,6 +14,8 @@ export interface ActivityItem {
   request_id: string | null;
   comment_id: string | null;
   plan_title: string | null;
+  poll_id?: string | null;
+  poll_title?: string | null;
   rsvp_going: boolean | null;
 }
 export interface ActivitySnapshot { items: ActivityItem[]; unread_count: number }
@@ -42,11 +44,14 @@ async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise
 }
 export async function fetchActivity(): Promise<ActivitySnapshot> {
   const data = await rpc<ActivitySnapshot>("activity_inbox_snapshot");
-  const kinds: ActivityKind[] = ["friend_request", "friend_accepted", "plan_invite", "plan_rsvp", "post_comment", "post_like"];
+  const kinds: ActivityKind[] = ["friend_request", "friend_accepted", "plan_invite", "plan_rsvp", "post_comment", "post_like", "poll_invite"];
   if (!data || !Array.isArray(data.items) || !Number.isSafeInteger(data.unread_count) || data.unread_count < 0
     || data.items.some((item) => !item || typeof item.id !== "string" || !kinds.includes(item.kind)
       || !item.actor || typeof item.actor.id !== "string" || typeof item.actor.display_name !== "string" || typeof item.actor.username !== "string"
-      || typeof item.created_at !== "string" || (item.read_at !== null && typeof item.read_at !== "string"))) {
+      || typeof item.created_at !== "string" || (item.read_at !== null && typeof item.read_at !== "string")
+      || (item.poll_id != null && typeof item.poll_id !== "string")
+      || (item.poll_title != null && typeof item.poll_title !== "string")
+      || (item.kind === "poll_invite" && (typeof item.poll_id !== "string" || !item.poll_id)))) {
     throw new ActivityError("We couldn’t read your activity. Please refresh.");
   }
   return data;

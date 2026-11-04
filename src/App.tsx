@@ -36,6 +36,7 @@ import Home from "./screens/Home";
 import { useAccount } from "./account/AccountProvider";
 import { useConnections } from "./account/ConnectionsProvider";
 import { useSocial } from "./social/SocialProvider";
+import { usePolls } from "./polls/PollsProvider";
 import RealHome from "./social/RealHome";
 import RealPlans from "./social/RealPlans";
 import ActivityInbox from "./activity/ActivityInbox";
@@ -108,6 +109,7 @@ export default function App() {
   const account = useAccount();
   const connections = useConnections();
   const social = useSocial();
+  const polls = usePolls();
   const inbox = useActivityInbox();
   const identity = useIdentity();
   const ownerId = account.session?.user.id ?? null;
@@ -190,14 +192,14 @@ export default function App() {
   }, [account.session, modal]);
 
   useEffect(() => {
-    const handle = () => { social.clearActivityTarget(); focusedActivity.current = null; setTab(readTab()); };
+    const handle = () => { social.clearActivityTarget(); polls.clearActivityTarget(); focusedActivity.current = null; setTab(readTab()); };
     window.addEventListener("popstate", handle);
     window.addEventListener("hashchange", handle);
     return () => {
       window.removeEventListener("popstate", handle);
       window.removeEventListener("hashchange", handle);
     };
-  }, [social.clearActivityTarget]);
+  }, [social.clearActivityTarget, polls.clearActivityTarget]);
   useEffect(() => {
     const target = social.activityTarget;
     if (!target || target.loading || target.error) return;
@@ -209,6 +211,17 @@ export default function App() {
     element.scrollIntoView({ block: "center", behavior: "instant" });
     element.focus({ preventScroll: true });
   }, [social.activityTarget, social.data, tab]);
+  useEffect(() => {
+    const target = polls.activityTarget;
+    if (!target || target.loading || target.error) return;
+    const id = `activity-poll-${target.pollId}`;
+    if (focusedActivity.current === id) return;
+    const element = document.getElementById(id);
+    if (!element) return;
+    focusedActivity.current = id;
+    element.scrollIntoView({ block: "center", behavior: "instant" });
+    element.focus({ preventScroll: true });
+  }, [polls.activityTarget, polls.data, tab]);
   useEffect(() => {
     document.title = `TARA — ${nav.find((item) => item.id === tab)?.label} | Stay connected. A little closer.`;
   }, [tab]);
@@ -236,6 +249,7 @@ export default function App() {
 
   function navigate(next: Tab) {
     social.clearActivityTarget();
+    polls.clearActivityTarget();
     focusedActivity.current = null;
     setFriendActivity(null);
     if (next !== tab) {
@@ -250,9 +264,10 @@ export default function App() {
   }
   function openActivity(item: ActivityItem) {
     setModal(null);
-    navigate(item.plan_id ? "plans" : item.post_id ? "home" : "friends");
+    navigate(item.poll_id || item.plan_id ? "plans" : item.post_id ? "home" : "friends");
     if (item.kind === "friend_request") setFriendActivity({ requestId: item.request_id, token: performance.now() });
     if (item.post_id || item.plan_id) void social.openActivityTarget(item.post_id, item.plan_id);
+    if (item.poll_id) void polls.openActivityTarget(item.poll_id);
   }
   function notify(message: string) {
     setToast(message);

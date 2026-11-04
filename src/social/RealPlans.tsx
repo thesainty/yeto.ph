@@ -18,6 +18,7 @@ import AudienceReview from "./AudienceReview";
 import { useConnections } from "../account/ConnectionsProvider";
 import { MAX_RECIPIENTS } from "./circles";
 import type { SocialPlan } from "./types";
+import PollsPanel from "../polls/PollsPanel";
 import "./social.css";
 
 const planDate = new Intl.DateTimeFormat("en-PH", {
@@ -178,6 +179,7 @@ export default function RealPlans() {
       </section>
 
       <SocialStatus />
+      <PollsPanel />
       {message && <p className="social-message" role="status">{message}</p>}
       {localError && !error && !cancelPlan && <p className="social-error" role="alert">{localError}</p>}
 
