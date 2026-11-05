@@ -261,6 +261,11 @@ class MockAccountService:
                 # dedicated polls suite supplies its own intercepted records.
                 respond({"polls": []})
                 return
+            if name == "plan_reminders_snapshot":
+                # Existing account/social scenarios do not opt into reminders.
+                # The reminders suite intercepts its own personal preferences.
+                respond({"reminders": []})
+                return
             if name == "audience_circles_snapshot":
                 if self.circles_network_failure:
                     route.abort("connectionfailed")

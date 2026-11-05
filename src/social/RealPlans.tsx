@@ -19,6 +19,7 @@ import { useConnections } from "../account/ConnectionsProvider";
 import { MAX_RECIPIENTS } from "./circles";
 import type { SocialPlan } from "./types";
 import PollsPanel from "../polls/PollsPanel";
+import PlanTools from "../planning/PlanTools";
 import "./social.css";
 
 const planDate = new Intl.DateTimeFormat("en-PH", {
@@ -275,6 +276,7 @@ export default function RealPlans() {
                   ) : null}
                   {hosting && <span className="social-muted">You’re hosting and counted as going.</span>}
                 </div>
+                <PlanTools plan={plan} disabled={disabled} />
               </article>
             );
           })}

@@ -48,3 +48,13 @@ The connected project already records `availability_polls` at version `202611041
 Polls keep explicit recipient UUIDs, default to **Only me**, and allow up to 500 current friends. The organizer and invitees can vote for multiple proposed times. Only the organizer can convert a poll into one plan, using the remaining original audience; votes do not become RSVPs. Relationship removal/blocking permanently revokes poll access and votes. The upgrade adds private `poll_invite` inbox items without enabling push or email.
 
 Run `node tests/polls-database.test.mjs` for the isolated database contract. Before hosted rollout, review RLS/grants and compare existing-data counts. Verify the new RPCs in a rolled-back hosted transaction so test polls, votes, plans, and invitations do not persist. Existing accounts, data, storage namespaces, and Supabase settings must remain intact.
+
+## Additive calendar support and personal reminders
+
+After the poll upgrade, apply [`migrations/20261104123952_plan_calendar_reminders.sql`](migrations/20261104123952_plan_calendar_reminders.sql), then [`migrations/20261104124007_plan_reminder_schedule.sql`](migrations/20261104124007_plan_reminder_schedule.sql), once each. **Do not rerun old setup.** The first adds account-private reminder choices, fresh authorized calendar exports, and a server-only dispatcher. The second enables `pg_cron` if needed and creates only `tara-plan-reminders-v1`, checking due reminders every minute and retaining seven days of its own run history.
+
+Reminders default off, support 60/1440 minutes before a plan, and are removed on opting out, cancellation, access revocation, or the participant's RSVP leave. Rejoining/re-friending does not restore them. Browser push/email remain disabled. Calendar files contain no invitation/attendance identities and are independent copies that TARA cannot update or revoke after export. See [the behavior and API contract](../docs/CALENDAR-REMINDERS.md).
+
+The connected project already records `plan_calendar_reminders` at `20261105114928` and `plan_reminder_schedule` at `20261105115022`. Do not reapply their source files. Hosted rollback checks and the scheduled job passed; fingerprints across 18 existing tables matched, all accounts remained, and no test reminders persisted. Existing Auth/Storage settings are unchanged.
+
+Run `npm run test:reminders` for isolated PostgreSQL and calendar-file checks. See the feature document for the completed validation and calendar-copy limitations.

@@ -17,6 +17,7 @@ function activityText(item: ActivityItem) {
     case "friend_request": return `${name} sent you a friend request`;
     case "friend_accepted": return `${name} accepted your friend request`;
     case "plan_invite": return `${name} invited you to ${item.plan_title || "a plan"}`;
+    case "plan_reminder": return `${item.reminder_minutes === 1440 ? "1-day" : "1-hour"} reminder for ${item.plan_title || "your plan"}`;
     case "poll_invite": return `${name} invited you to find a time for ${item.poll_title || "a get-together"}`;
     case "plan_rsvp": return `${name} ${item.rsvp_going ? "joined" : "left"} ${item.plan_title || "your plan"}`;
     case "post_comment": return `${name} commented on your update`;
@@ -106,7 +107,7 @@ function InboxContents({ onClose, onOpen, onFriends }: Props) {
                       <span className={`activity-icon activity-icon-${item.kind}`} aria-hidden="true">{activityIcon(item)}</span>
                       <span className="activity-item-copy">
                         <strong>{text}</strong>
-                        <small>@{item.actor.username} · {activityDate(item.created_at)}</small>
+                        <small>{item.kind === "plan_reminder" && item.plan_starts_at ? `Plan starts ${activityDate(item.plan_starts_at)}` : `@${item.actor.username} · ${activityDate(item.created_at)}`}</small>
                         <span className="activity-read-state">{unread ? "Unread" : "Read"}</span>
                       </span>
                       <ChevronRight size={17} aria-hidden="true" />
@@ -121,7 +122,7 @@ function InboxContents({ onClose, onOpen, onFriends }: Props) {
           <div className="activity-state" role="status">
             <span className="activity-empty-icon"><Bell size={25} /></span>
             <strong>You’re all caught up</strong>
-            <p>Friend requests, plan invitations, availability polls, RSVPs, comments, and reactions will appear here.</p>
+            <p>Friend requests, plan invitations and reminders, availability polls, RSVPs, comments, and reactions will appear here.</p>
           </div>
         )}
         {localError && <p className="activity-action-error" role="alert">{localError}</p>}
