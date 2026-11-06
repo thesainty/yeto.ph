@@ -25,6 +25,21 @@ interface Messages {
 }
 type ScrollIntent = "bottom" | "keep" | { top: number; height: number };
 const dates = new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Manila" });
+const times = new Intl.DateTimeFormat("en-PH", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Manila" });
+const days = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Manila" });
+const dayLabels = new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" });
+const dayKey = (value: string | number) => days.format(new Date(value));
+function dayLabel(value: string) {
+  const key = dayKey(value);
+  if (key === dayKey(Date.now())) return "Today";
+  if (key === dayKey(Date.now() - 86_400_000)) return "Yesterday";
+  return dayLabels.format(new Date(value));
+}
+function sameGroup(first: DirectMessage | undefined, second: DirectMessage | undefined) {
+  return !!first && !!second && first.author.id === second.author.id
+    && dayKey(first.created_at) === dayKey(second.created_at)
+    && Math.abs(Date.parse(second.created_at) - Date.parse(first.created_at)) < 5 * 60_000;
+}
 const emojis = [{ value: "👋", name: "Wave" }, { value: "😊", name: "Smile" }, { value: "❤️", name: "Heart" }];
 const readable = (cause: unknown) => cause instanceof Error ? cause.message : "We couldn’t load this chat. Please refresh and try again.";
 
@@ -39,6 +54,7 @@ export default function ChatPane({ chatId, paused, initialDraft, onDraft, onBack
   const [working, setWorking] = useState<"sending" | "deleting" | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   const mounted = useRef(true);
   const owner = useRef(userId);
   owner.current = userId;
@@ -72,6 +88,12 @@ export default function ChatPane({ chatId, paused, initialDraft, onDraft, onBack
     return () => { mounted.current = false; generation.current += 1; request.current = null; mutation.current = null; };
   }, []);
   useEffect(() => { heading.current?.focus({ preventScroll: true }); }, []);
+  useLayoutEffect(() => {
+    const input = textarea.current;
+    if (!input) return;
+    input.style.height = "auto";
+    input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
+  }, [draft, messages !== null]);
 
   useLayoutEffect(() => {
     if (!paused && !deletingId) return;
@@ -239,32 +261,49 @@ export default function ChatPane({ chatId, paused, initialDraft, onDraft, onBack
   }
 
   const pending = working !== null || chats.busy;
+  const draftLocked = working !== null || paused;
   const deleting = messages?.items.find((item) => item.id === deletingId);
   return <section className="direct-chat-pane" aria-label="Direct conversation" aria-busy={fetching}>
     <header className="direct-chat-header">
       <button type="button" className="icon-button direct-back" aria-label="Back to chats" disabled={pending} onClick={onBack}><ArrowLeft size={20} /></button>
-      {messages ? <><PersonAvatar person={messages.chat.friend} /><div><h2 ref={heading} tabIndex={-1}>{messages.chat.friend.display_name}</h2><p>@{messages.chat.friend.username}</p></div></> : <div><h2 ref={heading} tabIndex={-1}>Your conversation</h2><p>Private between friends</p></div>}
+      {messages ? <><PersonAvatar person={messages.chat.friend} /><div><h2 ref={heading} tabIndex={-1}>{messages.chat.friend.display_name}</h2><p>@{messages.chat.friend.username}<span className="direct-header-dot" aria-hidden="true">·</span><span className="direct-header-private">Friends only</span></p></div></> : <div><h2 ref={heading} tabIndex={-1}>Your conversation</h2><p>Private between friends</p></div>}
       <button type="button" className="icon-button direct-refresh" aria-label="Refresh chat" title="Refresh chat" disabled={pending || fetching || paused} onClick={() => void load()}><RefreshCw size={17} className={fetching ? "social-spinning" : ""} /></button>
+      <button type="button" className="icon-button direct-privacy-toggle" aria-label="Chat privacy" title="Chat privacy" aria-expanded={privacyOpen} aria-controls={`direct-privacy-${chatId}`} disabled={paused} onClick={() => setPrivacyOpen(!privacyOpen)}><ShieldCheck size={17} /></button>
     </header>
-    <p className="direct-chat-privacy"><ShieldCheck size={13} />Private between current friends. Removing or blocking ends this chat.</p>
+    {privacyOpen && <p id={`direct-privacy-${chatId}`} className="direct-chat-privacy"><ShieldCheck size={15} /><span>Private between current friends. Removing or blocking permanently deletes this chat for both people. Re-friending starts a new chat.</span></p>}
     {error && <div className="direct-chat-error" role="alert"><p>{error}</p><button type="button" className="button button-soft" disabled={pending || fetching || paused} onClick={() => void load()}>Try loading chat again</button></div>}
     {!messages && !error && <div className="direct-chat-placeholder" role="status"><MessageCircle size={28} /><p>Loading your conversation…</p></div>}
     {messages && <>
       {messages.hasMore && <button type="button" className="direct-earlier" disabled={pending || fetching || paused} onClick={() => void load("earlier")}>Load earlier messages</button>}
       <div className="direct-message-window" ref={history} tabIndex={0} aria-label="Chat history">
-        {messages.items.length ? <ol className="direct-messages" aria-label="Direct messages">{messages.items.map((item) => <li key={item.id} className={item.author.id === userId ? "direct-message-own" : ""}><article className="direct-message" aria-label={`Message by ${item.author.display_name}`} id={`direct-message-${item.id}`}>
-          <p>{item.body}</p>
-          <footer><time dateTime={item.created_at}>{dates.format(new Date(item.created_at))}</time>{item.author.id === userId && <button type="button" className="icon-button" aria-label={`Delete message: ${item.body}`} disabled={pending || paused} onClick={() => { request.current = null; setFetching(false); covered.current = true; setEmojiOpen(false); setNotice(""); setDeletingId(item.id); }}><Trash2 size={13} /></button>}</footer>
-        </article></li>)}</ol> : <div className="direct-empty-thread"><PersonAvatar person={messages.chat.friend} /><strong>A little hello starts here.</strong><p>Send a message to {messages.chat.friend.display_name}.</p></div>}
+        {messages.items.length ? <ol className="direct-messages" aria-label="Direct messages">{messages.items.map((item, index) => {
+          const previous = messages.items[index - 1];
+          const grouped = sameGroup(previous, item);
+          const groupEnd = !sameGroup(item, messages.items[index + 1]);
+          const newDay = !previous || dayKey(previous.created_at) !== dayKey(item.created_at);
+          const own = item.author.id === userId;
+          return <li key={item.id} className={`${own ? "direct-message-own" : ""}${grouped ? " direct-message-grouped" : ""}${newDay ? " direct-message-day" : ""}`}>
+            {newDay && <div className="direct-day-separator"><span>{dayLabel(item.created_at)}</span></div>}
+            <div className="direct-message-row"><article className="direct-message" aria-label={`Message by ${item.author.display_name}`} id={`direct-message-${item.id}`}>
+              <p>{item.body}</p>
+              <footer className={groupEnd ? undefined : "sr-only"}><time dateTime={item.created_at} title={dates.format(new Date(item.created_at))}>{groupEnd ? times.format(new Date(item.created_at)) : dates.format(new Date(item.created_at))}</time></footer>
+            </article>{own && <button type="button" className="icon-button direct-message-action" aria-label={`Delete message: ${item.body}`} title="Delete message" disabled={pending || paused} onClick={() => { request.current = null; setFetching(false); covered.current = true; setEmojiOpen(false); setNotice(""); setDeletingId(item.id); }}><Trash2 size={14} /></button>}</div>
+          </li>;
+        })}</ol> : <div className="direct-empty-thread"><PersonAvatar person={messages.chat.friend} /><strong>A little hello starts here.</strong><p>Send a message to {messages.chat.friend.display_name}.</p></div>}
       </div>
       <form className="direct-compose" aria-label="Send a direct message" onSubmit={(event) => { event.preventDefault(); void send(); }}>
         <label className="sr-only" htmlFor={`direct-compose-${chatId}`}>Message</label>
-        <textarea id={`direct-compose-${chatId}`} ref={textarea} value={draft} onChange={(event) => changeDraft(event.target.value)} maxLength={1000} rows={2} placeholder="Send a little hello…" required disabled={pending || paused} />
-        <div className="direct-compose-toolbar">
-          <div className="direct-emoji"><button ref={emojiButton} type="button" className="icon-button" aria-label="Add emoji" aria-expanded={emojiOpen} disabled={pending || paused} onClick={() => setEmojiOpen(!emojiOpen)}><Smile size={20} /></button>{emojiOpen && <div className="direct-emoji-choices" role="group" aria-label="Choose an emoji" onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setEmojiOpen(false); emojiButton.current?.focus(); } }}>{emojis.map((emoji) => <button key={emoji.name} type="button" aria-label={emoji.name} onClick={() => { if (draft.length + emoji.value.length <= 1000) changeDraft(draft + emoji.value); setEmojiOpen(false); textarea.current?.focus(); }}>{emoji.value}</button>)}</div>}</div>
-          <small>{draft.length}/1000</small>
-          <button className="button button-primary" type="submit" disabled={pending || paused || !draft.trim()}><Send size={15} />{working === "sending" ? "Sending…" : "Send message"}</button>
+        <div className="direct-compose-bar">
+          <div className="direct-emoji"><button ref={emojiButton} type="button" className="icon-button" aria-label="Add emoji" aria-expanded={emojiOpen} disabled={draftLocked} onClick={() => setEmojiOpen(!emojiOpen)}><Smile size={20} /></button>{emojiOpen && <div className="direct-emoji-choices" role="group" aria-label="Choose an emoji" onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setEmojiOpen(false); emojiButton.current?.focus(); } }}>{emojis.map((emoji) => <button key={emoji.name} type="button" aria-label={emoji.name} disabled={draftLocked} onClick={() => { if (draft.length + emoji.value.length <= 1000) changeDraft(draft + emoji.value); setEmojiOpen(false); textarea.current?.focus(); }}>{emoji.value}</button>)}</div>}</div>
+          <textarea id={`direct-compose-${chatId}`} ref={textarea} value={draft} onChange={(event) => changeDraft(event.target.value)} onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+              event.preventDefault();
+              void send();
+            }
+          }} maxLength={1000} rows={1} placeholder="A little hello…" aria-describedby={draft.length >= 900 ? `direct-count-${chatId}` : undefined} required disabled={draftLocked} />
+          <button className="direct-send" type="submit" aria-label="Send message" title={working === "sending" ? "Sending…" : "Send message"} disabled={pending || paused || !draft.trim()}>{working === "sending" ? <RefreshCw size={18} className="social-spinning" /> : <Send size={18} />}</button>
         </div>
+        <div className="direct-compose-meta"><span>Enter to send <i aria-hidden="true">·</i> Shift + Enter for a new line</span>{draft.length >= 900 && <small id={`direct-count-${chatId}`}>{draft.length}/1000</small>}</div>
       </form>
     </>}
     {notice && <p className="direct-chat-notice" role="status">{notice}</p>}

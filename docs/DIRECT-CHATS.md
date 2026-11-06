@@ -4,6 +4,8 @@ Open **Chats → New chat → choose a current friend** to start a private one-t
 
 Chats support text messages of 1–1,000 characters, emoji shortcuts, friend search in **New chat**, and search by name or username in the recent-chat list. Authors can delete their own messages for both people. The phone layout opens one conversation at a time with **Back to chats**; desktop shows the list beside the conversation. Both layouts support light and dark mode.
 
+The [compact Chats design](COMPACT-CHATS.md) adds grouped bubbles, quieter timestamps, an expanding inline composer, keyboard shortcuts, and an on-demand privacy explanation. Its design references and current UI validation are documented separately.
+
 ## Privacy and friendship changes
 
 Only the two current, unblocked friends can open or send to a chat. Each chat belongs to the original friendship row, not just the two account IDs. Removing the friendship or blocking either person permanently removes that thread, its messages, private read markers, and linked notifications. Both confirmations explain that the chat is deleted for both people. Re-friending creates a fresh chat and never restores the old history. Unblocking alone does not restore the friendship or chat.

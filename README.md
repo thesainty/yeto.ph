@@ -67,6 +67,8 @@ Choose **Conversation** on a signed-in plan to coordinate with its existing sele
 
 Open **Chats → New chat** for a private one-to-one conversation with a current friend. Search friends or recent chats, send text and emoji, delete your own messages, and follow unread badges or inbox links. Removing or blocking permanently ends the old thread; re-friending starts a fresh one. Messages and drafts never enter browser/demo storage. See [friend-chat behavior, checks, and the separate additive upgrade](docs/DIRECT-CHATS.md).
 
+Chats uses a [compact layout inspired by current chat design patterns](docs/COMPACT-CHATS.md): grouped bubbles, restrained timestamps, and a one-row composer that grows with the draft. Desktop Enter sends; Shift+Enter adds a line. Mobile keeps its newline key and a dedicated send button.
+
 Real social data is never saved in the local demo namespace or replaced by sample content on an error. Connection changes invalidate the displayed snapshot. Removing or blocking a friendship revokes its old post audiences and plan invitations/attendance; re-friending never restores them. No friendship, invitation, RSVP, post, or reaction grants location access. Lists refresh on focus, every 30 seconds while visible, and manually. The first release loads the latest 100 visible posts/plans and 100 latest comments per post without older-content pagination.
 
 Run `node tests/social-database.test.mjs` for isolated PostgreSQL access-control tests of the new migration (no old setup or hosted database). Run `python tests/social.py` with the fake/unconfigured servers described in `tests/accounts.py` for real-data UI/API contract checks. These browser tests intercept all remote requests; they do not create real accounts or content.

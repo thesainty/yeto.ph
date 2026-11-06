@@ -1,11 +1,11 @@
 .content-grid.content-grid-chats {
   grid-template-columns: minmax(0, 1fr);
-  max-width: 1200px;
-  padding: 23px 28px 0;
+  max-width: 1106px;
+  padding: 20px 28px 0;
 }
 .content-grid-chats .main-content { padding-bottom: 0; }
 .app-shell-chats .sidebar-note,
 .app-shell-chats .sidebar-share { display: none; }
 @media (max-width: 640px) {
-  .content-grid.content-grid-chats { padding: 6px 12px 82px; }
+  .content-grid.content-grid-chats { padding: 6px 8px 82px; }
 }

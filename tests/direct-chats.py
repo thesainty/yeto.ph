@@ -242,10 +242,13 @@ class DirectChatBrowserTests(unittest.TestCase):
     rpc_body = social.SocialBrowserTests.rpc_body
 
     def setUp(self):
-        self.context = self.browser.new_context(viewport={"width": 1440, "height": 1050}, reduced_motion="reduce")
         self.service = MockDirectChatService()
         self.errors = []
         self.unexpected_remote_hosts = []
+        self.create_page()
+
+    def create_page(self, **options):
+        self.context = self.browser.new_context(viewport={"width": 1440, "height": 1050}, reduced_motion="reduce", **options)
         def local_only(route):
             if urlparse(route.request.url).hostname in {urlparse(accounts.DEMO_URL).hostname, urlparse(accounts.ACCOUNT_URL).hostname}:
                 route.continue_()
@@ -298,6 +301,11 @@ class DirectChatBrowserTests(unittest.TestCase):
 
     def refresh(self):
         self.pane().get_by_role("button", name="Refresh chat", exact=True).click()
+
+    def delete_action(self, body):
+        # Desktop actions appear beside the message on hover or keyboard focus.
+        self.messages().get_by_text(body, exact=True).hover()
+        return self.pane().get_by_role("button", name=f"Delete message: {body}", exact=True)
 
     def held(self, queue):
         deadline = time.monotonic() + 5
@@ -457,11 +465,11 @@ class DirectChatBrowserTests(unittest.TestCase):
         self.sign_in_chats()
         self.open_chat()
         expect(self.pane().get_by_role("button", name=f"Delete message: {incoming['body']}", exact=True)).to_have_count(0)
-        self.pane().get_by_role("button", name=f"Delete message: {own['body']}", exact=True).click()
+        self.delete_action(own["body"]).click()
         modal = self.page.get_by_role("dialog", name="Delete this message?", exact=True)
         modal.get_by_role("button", name="Keep message", exact=True).click()
         expect(self.messages().get_by_text(own["body"], exact=True)).to_be_visible()
-        self.pane().get_by_role("button", name=f"Delete message: {own['body']}", exact=True).click()
+        self.delete_action(own["body"]).click()
         self.service.delete_error = "42501"
         modal.get_by_role("button", name="Yes, delete message", exact=True).click()
         expect(self.page.get_by_role("alert").first).to_be_visible()
@@ -469,7 +477,7 @@ class DirectChatBrowserTests(unittest.TestCase):
         if modal.count():
             modal.get_by_role("button", name="Close dialog", exact=True).click()
         self.refresh()
-        self.pane().get_by_role("button", name=f"Delete message: {own['body']}", exact=True).click()
+        self.delete_action(own["body"]).click()
         modal.get_by_role("button", name="Yes, delete message", exact=True).click()
         expect(modal).to_have_count(0)
         expect(self.messages().get_by_text(own["body"], exact=True)).to_have_count(0)
@@ -630,7 +638,7 @@ class DirectChatBrowserTests(unittest.TestCase):
         own = self.service.add_message("An own message pending deletion", author_id=accounts.USER_ID)
         self.sign_in_chats()
         self.open_chat()
-        self.pane().get_by_role("button", name=f"Delete message: {own['body']}", exact=True).click()
+        self.delete_action(own["body"]).click()
         modal = self.page.get_by_role("dialog", name="Delete this message?", exact=True)
         later = self.service.add_message("A new reply hidden by Delete", notify=True)
         calls = len(self.service.matching("/rest/v1/rpc/direct_chat_snapshot", "POST"))
@@ -718,7 +726,9 @@ class DirectChatBrowserTests(unittest.TestCase):
         incoming = self.service.add_message("An unread message whose acknowledgement fails", notify=True)
         self.service.mark_error = "42501"
         self.sign_in_chats()
-        self.open_chat()
+        # A rejected acknowledgement may clear the loaded content before the
+        # textarea paints; this path expects that private-content failure state.
+        self.chats().get_by_role("button", name="Open chat with Test Bea", exact=True).click()
         expect(self.pane().get_by_role("alert").first).to_be_visible()
         expect(self.pane().get_by_text(incoming["body"], exact=True)).to_have_count(0)
         self.assertNotIn(incoming["id"], self.service.read_ids())
@@ -728,6 +738,144 @@ class DirectChatBrowserTests(unittest.TestCase):
         self.read_complete([incoming["id"]])
         expect(self.messages().get_by_text(incoming["body"], exact=True)).to_be_visible()
         self.assertIsNotNone(self.service.current_inbox()[0]["read_at"])
+
+    def test_23_desktop_enter_sends_shift_enter_keeps_newline_and_ime_does_not_send(self):
+        self.service.add_chat()
+        self.sign_in_chats()
+        self.open_chat()
+        textbox = self.pane().get_by_role("textbox", name="Message", exact=True)
+        textbox.fill("First line")
+        textbox.dispatch_event("keydown", {"key": "Enter", "code": "Enter", "isComposing": True, "bubbles": True})
+        self.assertEqual(self.service.matching("/rest/v1/rpc/send_direct_message", "POST"), [])
+        expect(textbox).to_have_value("First line")
+        textbox.press("Shift+Enter")
+        textbox.press_sequentially("Second line")
+        expect(textbox).to_have_value("First line\nSecond line")
+        self.assertEqual(self.service.matching("/rest/v1/rpc/send_direct_message", "POST"), [])
+        textbox.press("Enter")
+        expect(textbox).to_have_value("")
+        expect(self.messages().get_by_text("First line\nSecond line", exact=True)).to_be_visible()
+        self.assertEqual(self.rpc_body("send_direct_message")["body_text"], "First line\nSecond line")
+        self.assertEqual(len(self.service.matching("/rest/v1/rpc/send_direct_message", "POST")), 1)
+
+    def test_24_grouped_history_keeps_individual_messages_dates_actions_and_privacy(self):
+        self.add_friend()
+        self.service.add_chat()
+        self.service.add_chat("dddddddd-dddd-4ddd-8ddd-000000000002", accounts.INCOMING_ID)
+        self.service.add_message("Sunday lunch at Lola’s? 🍲", chat_id="dddddddd-dddd-4ddd-8ddd-000000000002", author_id=accounts.INCOMING_ID)
+        old = self.service.add_message("Yesterday’s little hello")
+        old["created_at"] = "2026-10-30T08:00:00+00:00"
+        first = self.service.add_message("Shall we get coffee?", author_id=accounts.USER_ID)
+        first["created_at"] = "2026-10-31T08:00:00+00:00"
+        second = self.service.add_message("My treat ☕", author_id=accounts.USER_ID)
+        second["created_at"] = "2026-10-31T08:00:30+00:00"
+        last = self.service.add_message("Tara! See you at four.")
+        last["created_at"] = "2026-10-31T08:01:00+00:00"
+        for index, (body, author) in enumerate([
+            ("Same little spot by the window?", accounts.USER_ID),
+            ("You know me too well 😊", accounts.FRIEND_ID),
+            ("Bringing stories and a very long weekend list.", accounts.FRIEND_ID),
+            ("Perfect. A little catch-up is overdue.", accounts.USER_ID),
+        ]):
+            message = self.service.add_message(body, author_id=author)
+            message["created_at"] = f"2026-10-31T08:0{index + 2}:00+00:00"
+        self.sign_in_chats()
+        self.open_chat()
+        for item in (old, first, second, last):
+            expect(self.messages().get_by_text(item["body"], exact=True)).to_be_visible()
+            self.assertEqual(self.messages().locator(f"article[id='direct-message-{item['id']}'] time").get_attribute("datetime"), item["created_at"])
+        expect(self.messages().get_by_text("Oct 30, 2026", exact=True)).to_be_visible()
+        expect(self.messages().get_by_text("Oct 31, 2026", exact=True)).to_be_visible()
+        privacy = self.pane().get_by_role("button", name="Chat privacy", exact=True)
+        expect(privacy).to_have_attribute("aria-expanded", "false")
+        privacy.click()
+        expect(privacy).to_have_attribute("aria-expanded", "true")
+        expect(self.pane().get_by_text(re.compile("Removing or blocking permanently deletes this chat"))).to_be_visible()
+        privacy.click()
+        expect(privacy).to_have_attribute("aria-expanded", "false")
+        for dark in (False, True):
+            toggle = self.page.get_by_role("switch", name="Dark mode", exact=True)
+            if (toggle.get_attribute("aria-checked") == "true") != dark:
+                toggle.click()
+            for width, height in ((1440, 960), (375, 812), (320, 812)):
+                self.page.set_viewport_size({"width": width, "height": height})
+                self.screenshot(f"compact-rich-{'dark' if dark else 'light'}-{width}")
+        self.page.set_viewport_size({"width": 1440, "height": 960})
+        # Grouping must never combine identities or remove access to one message.
+        remove_first = self.pane().get_by_role("button", name=f"Delete message: {first['body']}", exact=True)
+        remove_first.focus()
+        remove_first.press("Enter")
+        self.page.get_by_role("dialog", name="Delete this message?", exact=True).get_by_role("button", name="Yes, delete message", exact=True).click()
+        expect(self.messages().get_by_text(first["body"], exact=True)).to_have_count(0)
+        expect(self.messages().get_by_text(second["body"], exact=True)).to_be_visible()
+        self.assertEqual(self.rpc_body("delete_direct_message")["message_id"], first["id"])
+
+    def test_25_short_touch_viewports_keep_history_and_expanding_composer_usable(self):
+        self.context.close()
+        self.create_page(has_touch=True, is_mobile=True)
+        self.add_friend()
+        self.service.add_chat()
+        self.service.add_chat("dddddddd-dddd-4ddd-8ddd-000000000002", accounts.INCOMING_ID)
+        self.service.add_message("A little reminder: coffee fixes almost everything ☕")
+        own = self.service.add_message("A long chat stays readable. " * 35, author_id=accounts.USER_ID)
+        self.service.add_message("See you later, barkada!")
+        self.sign_in_chats()
+        for width, height in ((375, 500), (320, 480)):
+            self.page.set_viewport_size({"width": width, "height": height})
+            self.open_chat()
+            textbox = self.pane().get_by_role("textbox", name="Message", exact=True)
+            textbox.fill("A compact draft")
+            short_height = textbox.bounding_box()["height"]
+            textbox.fill("\n".join(["A few plans for our next catch-up"] * 15))
+            geometry = self.pane().evaluate("pane => { const box = e => { const r=e.getBoundingClientRect(); return {top:r.top,bottom:r.bottom,width:r.width,height:r.height}; }; return {input:box(pane.querySelector('textarea')), history:box(pane.querySelector('[aria-label=\"Chat history\"]')), send:box(pane.querySelector('[aria-label=\"Send message\"]')), emoji:box(pane.querySelector('[aria-label=\"Add emoji\"]')), width:document.documentElement.scrollWidth, viewport:innerHeight}; }")
+            self.assertGreater(geometry["input"]["height"], short_height)
+            self.assertLessEqual(geometry["input"]["height"], 122)
+            self.assertGreaterEqual(geometry["history"]["height"], 40)
+            self.assertLessEqual(geometry["input"]["bottom"], geometry["viewport"] - 50)
+            self.assertLessEqual(geometry["send"]["bottom"], geometry["viewport"] - 50)
+            self.assertGreaterEqual(geometry["send"]["width"], 44)
+            self.assertGreaterEqual(geometry["send"]["height"], 44)
+            self.assertGreaterEqual(geometry["emoji"]["width"], 44)
+            self.assertGreaterEqual(geometry["emoji"]["height"], 44)
+            self.assertLessEqual(geometry["width"], width)
+            textbox.fill("A" * 1000)
+            expect(self.pane().get_by_text("1000/1000", exact=True)).to_be_visible()
+            self.screenshot(f"compact-short-{width}")
+            self.pane().get_by_role("button", name="Back to chats", exact=True).click()
+        # Touch users have an explicit action, without a hover or long-press.
+        self.open_chat()
+        action = self.pane().get_by_role("button", name=f"Delete message: {own['body']}", exact=True)
+        action.scroll_into_view_if_needed()
+        self.assertEqual(action.evaluate("e => getComputedStyle(e).opacity"), "1")
+        action.tap()
+        expect(self.page.get_by_role("dialog", name="Delete this message?", exact=True)).to_be_visible()
+
+    def test_26_receipt_acknowledgement_does_not_interrupt_a_focused_draft(self):
+        self.service.add_chat()
+        initial = self.service.add_message("An already read hello")
+        self.sign_in_chats()
+        self.open_chat()
+        self.read_complete([initial["id"]])
+        textbox = self.pane().get_by_role("textbox", name="Message", exact=True)
+        textbox.fill("Keep typing")
+        textbox.focus()
+        self.service.hold_mark = True
+        later = self.service.add_message("A new reply while you write", notify=True)
+        self.page.evaluate("window.dispatchEvent(new Event('focus'))")
+        pending, owner, acknowledgement = self.held(self.service.held_marks)
+        expect(self.messages().get_by_text(later["body"], exact=True)).to_be_visible()
+        expect(textbox).to_be_enabled()
+        expect(textbox).to_be_focused()
+        textbox.press_sequentially(" a little longer")
+        expect(textbox).to_have_value("Keep typing a little longer")
+        expect(self.pane().get_by_role("button", name="Add emoji", exact=True)).to_be_enabled()
+        self.assertNotIn(later["id"], self.service.read_ids())
+        self.service.apply_read(owner, acknowledgement)
+        pending.fulfill(status=200, headers=social.HEADERS, body="null")
+        expect(self.pane().get_by_role("button", name="Send message", exact=True)).to_be_enabled()
+        expect(textbox).to_be_focused()
+        expect(textbox).to_have_value("Keep typing a little longer")
+        self.assertIn(later["id"], self.service.read_ids())
 
 
 if __name__ == "__main__":
