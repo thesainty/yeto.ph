@@ -8,6 +8,7 @@ import { AudienceCirclesProvider } from "./social/AudienceCirclesProvider";
 import { ActivityInboxProvider } from "./activity/ActivityInboxProvider";
 import { PollsProvider } from "./polls/PollsProvider";
 import { RemindersProvider } from "./planning/RemindersProvider";
+import { ConversationsProvider } from "./conversations/ConversationsProvider";
 import "./styles.css";
 import "./theme/theme.css";
 import "./theme/screens-dark.css";
@@ -21,9 +22,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <SocialProvider>
             <PollsProvider>
               <RemindersProvider>
-                <ActivityInboxProvider>
-                  <App />
-                </ActivityInboxProvider>
+                <ConversationsProvider>
+                  <ActivityInboxProvider>
+                    <App />
+                  </ActivityInboxProvider>
+                </ConversationsProvider>
               </RemindersProvider>
             </PollsProvider>
           </SocialProvider>

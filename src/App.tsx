@@ -125,6 +125,7 @@ export default function App() {
       : state.requestStatus === "pending" ? 1 : 0;
   const [tab, setTab] = useState<Tab>(readTab);
   const [friendActivity, setFriendActivity] = useState<{ requestId: string | null; token: number } | null>(null);
+  const [conversationActivity, setConversationActivity] = useState<{ planId: string; token: number } | null>(null);
   const [modal, setModal] = useState<
     | "share"
     | "plan"
@@ -167,6 +168,7 @@ export default function App() {
     // Account changes also discard unsent local form drafts before paint.
     setToast("");
     setFriendActivity(null);
+    setConversationActivity(null);
     setAudience("Close friends");
     setDuration(60);
     setDestination("");
@@ -192,7 +194,7 @@ export default function App() {
   }, [account.session, modal]);
 
   useEffect(() => {
-    const handle = () => { social.clearActivityTarget(); polls.clearActivityTarget(); focusedActivity.current = null; setTab(readTab()); };
+    const handle = () => { social.clearActivityTarget(); polls.clearActivityTarget(); focusedActivity.current = null; setConversationActivity(null); setTab(readTab()); };
     window.addEventListener("popstate", handle);
     window.addEventListener("hashchange", handle);
     return () => {
@@ -211,6 +213,9 @@ export default function App() {
     element.scrollIntoView({ block: "center", behavior: "instant" });
     element.focus({ preventScroll: true });
   }, [social.activityTarget, social.data, tab]);
+  useEffect(() => {
+    if (social.activityTarget?.error && social.activityTarget.planId === conversationActivity?.planId) setConversationActivity(null);
+  }, [social.activityTarget, conversationActivity]);
   useEffect(() => {
     const target = polls.activityTarget;
     if (!target || target.loading || target.error) return;
@@ -252,6 +257,7 @@ export default function App() {
     polls.clearActivityTarget();
     focusedActivity.current = null;
     setFriendActivity(null);
+    setConversationActivity(null);
     if (next !== tab) {
       setTab(next);
       window.history.pushState({}, "", `#${next}`);
@@ -266,6 +272,7 @@ export default function App() {
     setModal(null);
     navigate(item.poll_id || item.plan_id ? "plans" : item.post_id ? "home" : "friends");
     if (item.kind === "friend_request") setFriendActivity({ requestId: item.request_id, token: performance.now() });
+    if (item.kind === "plan_message" && item.plan_id) setConversationActivity({ planId: item.plan_id, token: performance.now() });
     if (item.post_id || item.plan_id) void social.openActivityTarget(item.post_id, item.plan_id);
     if (item.poll_id) void polls.openActivityTarget(item.poll_id);
   }
@@ -647,7 +654,7 @@ export default function App() {
                     {social.activityTarget.error && <button type="button" className="button button-soft" onClick={() => void social.openActivityTarget(null, social.activityTarget!.planId)}>Try opening again</button>}
                     <button type="button" className="button button-soft" onClick={social.clearActivityTarget}>Close opened item</button>
                   </div>}
-                  <RealPlans key={ownerId} />
+                  <RealPlans key={ownerId} conversationActivity={conversationActivity} onConversationOpened={() => setConversationActivity(null)} />
                 </>
               )}
               {tab === "plans" && !account.loading && !account.session && (

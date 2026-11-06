@@ -116,7 +116,12 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     targetRequest.current = { postId, planId, token, revision };
     const current = generation.current;
     const matches = () => current === generation.current && activeScope.current === scope && targetRequest.current?.token === token;
-    setTarget({ revision, scope, postId, planId, data: null, loading: true, error: "" });
+    setTarget((previous) => ({ revision, scope, postId, planId,
+      // Keep an already-authorized card mounted during normal revalidation so
+      // an open conversation and its unsent draft survive the background read.
+      // New targets, relationship changes, and rejected reads still clear it.
+      data: revalidate && previous?.scope === scope && previous.postId === postId && previous.planId === planId ? previous.data : null,
+      loading: true, error: "" }));
     try {
       const data = await fetchActivityTarget(postId, planId);
       if (!matches()) return;
@@ -177,6 +182,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         if (current !== generation.current || activeScope.current !== scope) return;
         const readable = socialError(cause);
         lastRefreshFailed.current = true;
+        if (targetRequest.current) targetRequest.current = { ...targetRequest.current, token: Symbol("invalidated activity target") };
+        setTarget((previous) => previous?.scope === scope ? { ...previous, data: null, loading: false, error: readable.message } : previous);
         setSnapshot((previous) => ({
           ...previous,
           data: null,

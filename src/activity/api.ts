@@ -2,7 +2,7 @@ import { supabase } from "../lib/supabase";
 import type { Profile } from "../account/types";
 import type { SocialSnapshot } from "../social/types";
 
-export type ActivityKind = "friend_request" | "friend_accepted" | "plan_invite" | "plan_rsvp" | "post_comment" | "post_like" | "poll_invite" | "plan_reminder";
+export type ActivityKind = "friend_request" | "friend_accepted" | "plan_invite" | "plan_rsvp" | "post_comment" | "post_like" | "poll_invite" | "plan_reminder" | "plan_message";
 export interface ActivityItem {
   id: string;
   kind: ActivityKind;
@@ -18,6 +18,7 @@ export interface ActivityItem {
   poll_title?: string | null;
   reminder_minutes?: number | null;
   plan_starts_at?: string | null;
+  message_id?: string | null;
   rsvp_going: boolean | null;
 }
 export interface ActivitySnapshot { items: ActivityItem[]; unread_count: number }
@@ -46,7 +47,7 @@ async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise
 }
 export async function fetchActivity(): Promise<ActivitySnapshot> {
   const data = await rpc<ActivitySnapshot>("activity_inbox_snapshot");
-  const kinds: ActivityKind[] = ["friend_request", "friend_accepted", "plan_invite", "plan_rsvp", "post_comment", "post_like", "poll_invite", "plan_reminder"];
+  const kinds: ActivityKind[] = ["friend_request", "friend_accepted", "plan_invite", "plan_rsvp", "post_comment", "post_like", "poll_invite", "plan_reminder", "plan_message"];
   if (!data || !Array.isArray(data.items) || !Number.isSafeInteger(data.unread_count) || data.unread_count < 0
     || data.items.some((item) => !item || typeof item.id !== "string" || !kinds.includes(item.kind)
       || !item.actor || typeof item.actor.id !== "string" || typeof item.actor.display_name !== "string" || typeof item.actor.username !== "string"
@@ -56,6 +57,8 @@ export async function fetchActivity(): Promise<ActivitySnapshot> {
       || (item.kind === "poll_invite" && (typeof item.poll_id !== "string" || !item.poll_id))
       || (item.reminder_minutes != null && item.reminder_minutes !== 60 && item.reminder_minutes !== 1440)
       || (item.plan_starts_at != null && (typeof item.plan_starts_at !== "string" || !Number.isFinite(Date.parse(item.plan_starts_at))))
+      || (item.message_id != null && typeof item.message_id !== "string")
+      || (item.kind === "plan_message" && (typeof item.plan_id !== "string" || !item.plan_id || typeof item.message_id !== "string" || !item.message_id))
       || (item.kind === "plan_reminder" && (typeof item.plan_id !== "string" || !item.plan_id
         || (item.reminder_minutes !== 60 && item.reminder_minutes !== 1440)
         || typeof item.plan_starts_at !== "string" || !Number.isFinite(Date.parse(item.plan_starts_at)))))) {

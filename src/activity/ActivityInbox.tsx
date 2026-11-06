@@ -17,6 +17,7 @@ function activityText(item: ActivityItem) {
     case "friend_request": return `${name} sent you a friend request`;
     case "friend_accepted": return `${name} accepted your friend request`;
     case "plan_invite": return `${name} invited you to ${item.plan_title || "a plan"}`;
+    case "plan_message": return `${name} sent a message in ${item.plan_title || "a plan"}`;
     case "plan_reminder": return `${item.reminder_minutes === 1440 ? "1-day" : "1-hour"} reminder for ${item.plan_title || "your plan"}`;
     case "poll_invite": return `${name} invited you to find a time for ${item.poll_title || "a get-together"}`;
     case "plan_rsvp": return `${name} ${item.rsvp_going ? "joined" : "left"} ${item.plan_title || "your plan"}`;
@@ -28,7 +29,7 @@ function activityText(item: ActivityItem) {
 function activityIcon(item: ActivityItem) {
   if (item.kind === "friend_request" || item.kind === "friend_accepted") return <Users size={20} />;
   if (item.kind === "post_like") return <Heart size={20} />;
-  if (item.kind === "post_comment") return <MessageCircle size={20} />;
+  if (item.kind === "post_comment" || item.kind === "plan_message") return <MessageCircle size={20} />;
   return <CalendarDays size={20} />;
 }
 
@@ -122,7 +123,7 @@ function InboxContents({ onClose, onOpen, onFriends }: Props) {
           <div className="activity-state" role="status">
             <span className="activity-empty-icon"><Bell size={25} /></span>
             <strong>You’re all caught up</strong>
-            <p>Friend requests, plan invitations and reminders, availability polls, RSVPs, comments, and reactions will appear here.</p>
+            <p>Friend requests, plan invitations, messages and reminders, availability polls, RSVPs, comments, and reactions will appear here.</p>
           </div>
         )}
         {localError && <p className="activity-action-error" role="alert">{localError}</p>}

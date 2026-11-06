@@ -20,6 +20,7 @@ import { MAX_RECIPIENTS } from "./circles";
 import type { SocialPlan } from "./types";
 import PollsPanel from "../polls/PollsPanel";
 import PlanTools from "../planning/PlanTools";
+import PlanConversation from "../conversations/PlanConversation";
 import "./social.css";
 
 const planDate = new Intl.DateTimeFormat("en-PH", {
@@ -43,7 +44,12 @@ function readableError(cause: unknown) {
   return cause instanceof Error ? cause.message : "We couldn’t save that change. Please try again.";
 }
 
-export default function RealPlans() {
+interface Props {
+  conversationActivity?: { planId: string; token: number } | null;
+  onConversationOpened?: () => void;
+}
+
+export default function RealPlans({ conversationActivity, onConversationOpened }: Props) {
   const { userId, data, refreshing, error, setupRequired, refresh, run, busy, activityTarget } = useSocial();
   const connections = useConnections();
   const [creating, setCreating] = useState(false);
@@ -277,6 +283,7 @@ export default function RealPlans() {
                   {hosting && <span className="social-muted">You’re hosting and counted as going.</span>}
                 </div>
                 <PlanTools plan={plan} disabled={disabled} />
+                <PlanConversation plan={plan} disabled={disabled} activityToken={conversationActivity?.planId === plan.id ? conversationActivity.token : undefined} onOpened={onConversationOpened} />
               </article>
             );
           })}

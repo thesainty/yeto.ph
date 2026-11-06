@@ -58,3 +58,13 @@ Reminders default off, support 60/1440 minutes before a plan, and are removed on
 The connected project already records `plan_calendar_reminders` at `20261105114928` and `plan_reminder_schedule` at `20261105115022`. Do not reapply their source files. Hosted rollback checks and the scheduled job passed; fingerprints across 18 existing tables matched, all accounts remained, and no test reminders persisted. Existing Auth/Storage settings are unchanged.
 
 Run `npm run test:reminders` for isolated PostgreSQL and calendar-file checks. See the feature document for the completed validation and calendar-copy limitations.
+
+## Additive private plan conversations
+
+After the calendar/reminder upgrades, apply [`migrations/20261105120302_plan_conversations.sql`](migrations/20261105120302_plan_conversations.sql) once. **Do not rerun old setup.** The upgrade adds RLS-protected plan messages, explicit message-recipient snapshots, personal read markers, and coalesced `plan_message` inbox items. It preserves existing data, reminder scheduling, and Auth/Storage settings without enabling Realtime, push, or email.
+
+Only the existing eligible plan members can receive a new message. Older audiences never expand, and removing or blocking permanently prunes affected grants. Only authorized authors can delete their messages. Read markers are private and acknowledge exact loaded IDs. The inbox uniqueness/index change and RSVP trigger predicate are applied together to preserve RSVP and reminder behavior. See [the behavior and API contract](../docs/PLAN-CONVERSATIONS.md).
+
+The connected project records `plan_conversations` at version `20261106113950`. Do not reapply its source file. Hosted rollback verification passed; fingerprints across 19 existing tables matched, all accounts remained, and no test conversation rows persisted. The existing reminder job remains active and successful. Auth/Storage/Cron settings are unchanged.
+
+Run `npm run test:conversations` for isolated PostgreSQL checks. See the feature document for the complete validation and conversation privacy behavior.

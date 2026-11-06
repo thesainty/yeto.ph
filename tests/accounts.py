@@ -266,6 +266,10 @@ class MockAccountService:
                 # The reminders suite intercepts its own personal preferences.
                 respond({"reminders": []})
                 return
+            if name == "plan_conversations_snapshot":
+                # Conversation browser checks supply their own intercepted data.
+                respond({"conversations": []})
+                return
             if name == "audience_circles_snapshot":
                 if self.circles_network_failure:
                     route.abort("connectionfailed")
