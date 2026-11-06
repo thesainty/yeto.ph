@@ -270,6 +270,10 @@ class MockAccountService:
                 # Conversation browser checks supply their own intercepted data.
                 respond({"conversations": []})
                 return
+            if name == "direct_chats_snapshot":
+                # Dedicated direct-chat checks supply their own intercepted data.
+                respond({"chats": []})
+                return
             if name == "audience_circles_snapshot":
                 if self.circles_network_failure:
                     route.abort("connectionfailed")

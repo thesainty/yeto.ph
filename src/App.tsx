@@ -20,6 +20,7 @@ import {
   Info,
   LockKeyhole,
   MapPin,
+  MessageCircle,
   Moon,
   Navigation,
   Plus,
@@ -37,6 +38,8 @@ import { useAccount } from "./account/AccountProvider";
 import { useConnections } from "./account/ConnectionsProvider";
 import { useSocial } from "./social/SocialProvider";
 import { usePolls } from "./polls/PollsProvider";
+import ChatsScreen from "./chats/ChatsScreen";
+import { useDirectChats } from "./chats/DirectChatsProvider";
 import RealHome from "./social/RealHome";
 import RealPlans from "./social/RealPlans";
 import ActivityInbox from "./activity/ActivityInbox";
@@ -51,6 +54,7 @@ import { useIdentity } from "./account/useIdentity";
 import type { Circle, PersonId, Plan, Tab } from "./types";
 import { useTheme } from "./theme/useTheme";
 import "./home-layout.css";
+import "./chats-layout.css";
 
 const AccountPanel = lazy(() => import("./account/AccountPanel"));
 
@@ -59,6 +63,7 @@ const nav = [
   { id: "map" as const, label: "Map", icon: MapPin },
   { id: "plans" as const, label: "Plans", icon: CalendarDays },
   { id: "friends" as const, label: "Friends", icon: Users },
+  { id: "chats" as const, label: "Chats", icon: MessageCircle },
 ];
 const pageCopy: Record<
   Tab,
@@ -83,6 +88,11 @@ const pageCopy: Record<
     eyebrow: "LIFE’S BETTER WITH YOUR PEOPLE.",
     title: "Your people",
     subtitle: "A little family. A little barkada. A lot of good company.",
+  },
+  chats: {
+    eyebrow: "A LITTLE HELLO GOES A LONG WAY.",
+    title: "Chats",
+    subtitle: "Private conversations with your friends.",
   },
 };
 const circles: Circle[] = ["Close friends", "Pamilya", "Barkada"];
@@ -110,6 +120,7 @@ export default function App() {
   const connections = useConnections();
   const social = useSocial();
   const polls = usePolls();
+  const directChats = useDirectChats();
   const inbox = useActivityInbox();
   const identity = useIdentity();
   const ownerId = account.session?.user.id ?? null;
@@ -126,6 +137,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>(readTab);
   const [friendActivity, setFriendActivity] = useState<{ requestId: string | null; token: number } | null>(null);
   const [conversationActivity, setConversationActivity] = useState<{ planId: string; token: number } | null>(null);
+  const [directActivity, setDirectActivity] = useState<{ chatId: string; token: number } | null>(null);
   const [modal, setModal] = useState<
     | "share"
     | "plan"
@@ -142,6 +154,7 @@ export default function App() {
   const focusedActivity = useRef<string | null>(null);
   const unreadActivity = account.loading ? 0 : account.session
     ? (inbox.data?.unread_count ?? (inbox.setupRequired ? pendingRequests : 0)) : pendingRequests;
+  const unreadChats = account.loading || !account.session ? 0 : directChats.data?.chats.reduce((total, chat) => total + chat.unread_count, 0) ?? 0;
   const [audience, setAudience] = useState<Circle>("Close friends");
   const [duration, setDuration] = useState<number | null>(60);
   const [destination, setDestination] = useState("");
@@ -169,6 +182,7 @@ export default function App() {
     setToast("");
     setFriendActivity(null);
     setConversationActivity(null);
+    setDirectActivity(null);
     setAudience("Close friends");
     setDuration(60);
     setDestination("");
@@ -194,7 +208,7 @@ export default function App() {
   }, [account.session, modal]);
 
   useEffect(() => {
-    const handle = () => { social.clearActivityTarget(); polls.clearActivityTarget(); focusedActivity.current = null; setConversationActivity(null); setTab(readTab()); };
+    const handle = () => { social.clearActivityTarget(); polls.clearActivityTarget(); focusedActivity.current = null; setConversationActivity(null); setDirectActivity(null); setTab(readTab()); };
     window.addEventListener("popstate", handle);
     window.addEventListener("hashchange", handle);
     return () => {
@@ -258,6 +272,7 @@ export default function App() {
     focusedActivity.current = null;
     setFriendActivity(null);
     setConversationActivity(null);
+    setDirectActivity(null);
     if (next !== tab) {
       setTab(next);
       window.history.pushState({}, "", `#${next}`);
@@ -270,6 +285,11 @@ export default function App() {
   }
   function openActivity(item: ActivityItem) {
     setModal(null);
+    if (item.kind === "direct_message" && item.direct_chat_id) {
+      navigate("chats");
+      setDirectActivity({ chatId: item.direct_chat_id, token: performance.now() });
+      return;
+    }
     navigate(item.poll_id || item.plan_id ? "plans" : item.post_id ? "home" : "friends");
     if (item.kind === "friend_request") setFriendActivity({ requestId: item.request_id, token: performance.now() });
     if (item.kind === "plan_message" && item.plan_id) setConversationActivity({ planId: item.plan_id, token: performance.now() });
@@ -406,7 +426,7 @@ export default function App() {
       >
         Skip to content
       </a>
-      <div className={`app-shell${tab === "home" ? " app-shell-home" : ""}`}>
+      <div className={`app-shell${tab === "home" ? " app-shell-home" : tab === "chats" ? " app-shell-chats" : ""}`}>
         <aside className="sidebar">
           <button
             className="brand-button"
@@ -425,6 +445,7 @@ export default function App() {
                 aria-label={
                   id === "friends" && pendingRequests > 0
                     ? `Friends (${pendingRequests} pending requests)`
+                    : id === "chats" && unreadChats > 0 ? `Chats (${unreadChats} unread messages)`
                     : undefined
                 }
                 className={tab === id ? "nav-active" : ""}
@@ -436,6 +457,8 @@ export default function App() {
                   <i className="nav-badge" aria-hidden="true">
                     {pendingRequests}
                   </i>
+                ) : id === "chats" && unreadChats > 0 ? (
+                  <i className="nav-badge" aria-hidden="true">{unreadChats > 99 ? "99+" : unreadChats}</i>
                 ) : id === "plans" && joinedPlanCount ? (
                   <i className="nav-count">{joinedPlanCount}</i>
                 ) : tab === id ? (
@@ -544,14 +567,14 @@ export default function App() {
               </button>
             </div>
           </header>
-          <div className={`content-grid${tab === "home" ? " content-grid-home" : ""}`}>
+          <div className={`content-grid${tab === "home" ? " content-grid-home" : tab === "chats" ? " content-grid-chats" : ""}`}>
             <main
               id="main-content"
               ref={mainRef}
               tabIndex={-1}
               className="main-content"
             >
-              <div className={`page-heading${tab === "home" ? " page-heading-home" : ""}`}>
+              {tab !== "chats" && <div className={`page-heading${tab === "home" ? " page-heading-home" : ""}`}>
                 {tab !== "home" && <span className="eyebrow">{copy.eyebrow}</span>}
                 <h1>
                   <span>
@@ -564,7 +587,7 @@ export default function App() {
                   )}
                 </h1>
                 {tab !== "home" && <p>{copy.subtitle}</p>}
-              </div>
+              </div>}
               {storageUnavailable && (
                 <div className="storage-notice" role="status">
                   <Info size={16} /> Your browser can’t save this demo. Changes
@@ -688,15 +711,18 @@ export default function App() {
                   onShare={openShare}
                 />
               )}
-              <footer className="main-footer">
+              {tab === "chats" && (account.loading
+                ? <div className="card account-loading" role="status">Loading your account…</div>
+                : <ChatsScreen key={activityOwner} active={modal === null} onSignIn={() => setModal("account")} directActivity={directActivity} onActivityOpened={() => setDirectActivity(null)} />)}
+              {tab !== "chats" && <footer className="main-footer">
                 <Logo compact />
                 <span>Stay connected. A little closer.</span>
                 <Heart size={12} fill="currentColor" />
                 <button className="pilot-guide-link" onClick={() => setModal("pilot")}>Pilot guide</button>
-              </footer>
+              </footer>}
             </main>
 
-            {tab !== "home" && <aside className="right-rail" aria-label="Your circle at a glance">
+            {tab !== "home" && tab !== "chats" && <aside className="right-rail" aria-label="Your circle at a glance">
               <section className="card circle-overview">
                 <div className="rail-heading">
                   <h2>
@@ -802,6 +828,7 @@ export default function App() {
             aria-label={
               id === "friends" && pendingRequests > 0
                 ? `Friends (${pendingRequests} pending requests)`
+                : id === "chats" && unreadChats > 0 ? `Chats (${unreadChats} unread messages)`
                 : undefined
             }
             aria-current={tab === id ? "page" : undefined}
@@ -814,6 +841,7 @@ export default function App() {
                   {pendingRequests}
                 </i>
               )}
+              {id === "chats" && unreadChats > 0 && <i className="nav-badge" aria-hidden="true">{unreadChats > 99 ? "99+" : unreadChats}</i>}
             </span>
             {label}
           </button>

@@ -646,8 +646,8 @@ export default function ConnectionsPanel({ initialView = "friends", focusRequest
             </strong>
             <p>
               {confirmation.kind === "block"
-                ? "This removes your friendship and pending requests. You can unblock them later, but it won’t restore the friendship."
-                : "You’ll need a new accepted request to be friends again."}
+                ? "This removes your friendship and pending requests. Your private chat and its messages will be permanently deleted for both of you. Unblocking won’t restore them or the friendship."
+                : "Your private chat and its messages will be permanently deleted for both of you. You’ll need a new accepted request to be friends again."}
             </p>
           </div>
           <div className="connections-confirm-actions">

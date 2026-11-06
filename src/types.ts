@@ -1,4 +1,4 @@
-export type Tab = "home" | "map" | "plans" | "friends";
+export type Tab = "home" | "map" | "plans" | "friends" | "chats";
 export type PersonId = "mika" | "bea" | "luis" | "paolo" | "ana" | "nico";
 export type Circle = "Close friends" | "Pamilya" | "Barkada";
 export interface Plan {

@@ -65,6 +65,8 @@ Each signed-in plan also has **Add to calendar** and **Remind me** tools. Person
 
 Choose **Conversation** on a signed-in plan to coordinate with its existing selected people. Text messages keep a fixed recipient snapshot, unread markers are personal, and authors can delete their own messages. The inbox groups new messages by plan; removing or blocking revokes old access. See [private plan conversations and the additive upgrade](docs/PLAN-CONVERSATIONS.md).
 
+Open **Chats → New chat** for a private one-to-one conversation with a current friend. Search friends or recent chats, send text and emoji, delete your own messages, and follow unread badges or inbox links. Removing or blocking permanently ends the old thread; re-friending starts a fresh one. Messages and drafts never enter browser/demo storage. See [friend-chat behavior, checks, and the separate additive upgrade](docs/DIRECT-CHATS.md).
+
 Real social data is never saved in the local demo namespace or replaced by sample content on an error. Connection changes invalidate the displayed snapshot. Removing or blocking a friendship revokes its old post audiences and plan invitations/attendance; re-friending never restores them. No friendship, invitation, RSVP, post, or reaction grants location access. Lists refresh on focus, every 30 seconds while visible, and manually. The first release loads the latest 100 visible posts/plans and 100 latest comments per post without older-content pagination.
 
 Run `node tests/social-database.test.mjs` for isolated PostgreSQL access-control tests of the new migration (no old setup or hosted database). Run `python tests/social.py` with the fake/unconfigured servers described in `tests/accounts.py` for real-data UI/API contract checks. These browser tests intercept all remote requests; they do not create real accounts or content.
@@ -103,6 +105,7 @@ See `scripts/setup.sh` and `docs/environment-start.md` for installation and star
 
 - `src/App.tsx`: navigation, demo state, dialogs, and interactions.
 - `src/screens/`: the four screens and their styles.
+- `src/chats/`: account-private one-to-one conversations, recent-chat summaries, and responsive chat layouts.
 - `src/state.ts` and `src/useDemoState.ts`: validation, sharing expiry, and account-scoped sample storage.
 - `src/account/useIdentity.ts`: signed-in display names, usernames, and Unicode-safe initials.
 - `src/data.ts`: fictional profiles and initial plans.

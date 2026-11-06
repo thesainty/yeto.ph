@@ -68,3 +68,13 @@ Only the existing eligible plan members can receive a new message. Older audienc
 The connected project records `plan_conversations` at version `20261106113950`. Do not reapply its source file. Hosted rollback verification passed; fingerprints across 19 existing tables matched, all accounts remained, and no test conversation rows persisted. The existing reminder job remains active and successful. Auth/Storage/Cron settings are unchanged.
 
 Run `npm run test:conversations` for isolated PostgreSQL checks. See the feature document for the complete validation and conversation privacy behavior.
+
+## Additive private friend chats
+
+After the private plan-conversation upgrade, apply [`migrations/20261106115515_direct_friend_chats.sql`](migrations/20261106115515_direct_friend_chats.sql) once. **Do not rerun old setup.** It adds RLS-protected one-to-one threads, messages, personal read markers, and coalesced `direct_message` inbox items. Public invoker RPCs and narrowly granted private helpers enforce current, unblocked friendship access and deny direct client writes.
+
+Each thread is bound to its original friendship row. Removing or blocking permanently deletes that thread and its messages/read markers/notifications; re-friending starts a new thread. Read acknowledgements use exact loaded message IDs, retry nonces prevent duplicate sends, and only authorized authors may delete messages. Existing accounts, data, audience snapshots, reminder scheduling, storage identifiers, and Auth/Storage/Cron settings are preserved. Realtime, push, and email remain disabled.
+
+The connected project records `direct_friend_chats` at version `20261106215356`. Do not reapply its source file. All 20 isolated direct-chat database checks, 22 direct-chat browser checks, and 34 hosted rollback assertions passed. Fingerprints across all 22 existing public tables and four account identities matched, with no test rows remaining. RLS is enabled, advisors have no new findings, and the existing reminder job stayed active and successful. Auth/Storage/Cron settings are unchanged.
+
+Run `npm run test:chats` for isolated PostgreSQL checks and `python tests/direct-chats.py` with intercepted fictional accounts. See [the behavior, installation, API contract, and full validation](../docs/DIRECT-CHATS.md).

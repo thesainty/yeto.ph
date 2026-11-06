@@ -273,7 +273,7 @@ class YetoSmokeTests(unittest.TestCase):
         expect(dialog).to_have_count(0)
         expect(opener).to_be_focused()
         self.page.set_viewport_size({"width": 375, "height": 812})
-        for name in ["Home", "Map", "Plans", "Friends"]:
+        for name in ["Home", "Map", "Plans", "Chats", "Friends"]:
             self.navigate(name)
             expect(self.page.get_by_role("navigation", name="Mobile navigation", exact=True)).to_be_visible()
             dimensions = self.page.evaluate("({width: window.innerWidth, scrollWidth: document.documentElement.scrollWidth})")
